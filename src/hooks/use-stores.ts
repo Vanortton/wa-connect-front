@@ -3,7 +3,7 @@ import axios from 'axios'
 export const useStores = () => {
     const getStores = async (userToken: string) => {
         const response = await axios.get(
-            'http://localhost:3000/stores',
+            'https://backend-779792751824.us-central1.run.app/stores',
             {
                 params: { idToken: userToken },
             }
@@ -14,7 +14,7 @@ export const useStores = () => {
 
     const createStore = async (userToken: string, surname: string) => {
         await axios.post(
-            'http://localhost:3000/stores',
+            'https://backend-779792751824.us-central1.run.app/stores',
             {
                 idToken: userToken,
                 surname,
@@ -25,7 +25,7 @@ export const useStores = () => {
 
     const deleteStore = async (userToken: string, storeId: string) => {
         await axios.delete(
-            `http://localhost:3000/store/${storeId}`,
+            `https://backend-779792751824.us-central1.run.app/store/${storeId}`,
             {
                 params: { idToken: userToken },
             }
@@ -39,7 +39,7 @@ export const useStores = () => {
         name: string
     ) => {
         await axios.post(
-            `http://localhost:3000/store/${storeId}/attendants`,
+            `https://backend-779792751824.us-central1.run.app/store/${storeId}/attendants`,
             {
                 idToken: userToken,
                 name,
@@ -54,7 +54,7 @@ export const useStores = () => {
         token: string
     ) => {
         await axios.delete(
-            `http://localhost:3000/store/${storeId}/attendants/${token}`,
+            `https://backend-779792751824.us-central1.run.app/store/${storeId}/attendants/${token}`,
             { params: { idToken: userToken } }
         )
         return

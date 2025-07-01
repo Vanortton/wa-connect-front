@@ -16,6 +16,7 @@ import {
     Video,
 } from 'lucide-react'
 import { useContext, useEffect, useState } from 'react'
+import stc from 'string-to-color'
 import Header from './Header'
 
 type ChatItemParams = { chat: Chat }
@@ -27,16 +28,21 @@ export default function ChatsList() {
     const [filteredChats, setFilteredChats] = useState<Chat[]>([])
     const [search, setSearch] = useState<string>('')
 
-    const filters = [
-        { key: 'all', label: 'Todos' },
-        { key: 'attending', label: 'Atendendo' },
-        { key: 'unread', label: 'Não lidas' },
-    ]
     const chatsArray = Object.values(chats).sort((a, b) => {
         const aTime = a.lastMessage?.timestamp || 0
         const bTime = b.lastMessage?.timestamp || 0
         return bTime - aTime
     })
+    const unreadChats = chatsArray.reduce((acc, value) => {
+        if (value.unreadMessages > 0) return acc + 1
+        return acc
+    }, 0)
+    document.title = unreadChats > 0 ? `(${unreadChats}) VAZAP` : 'VAZAP'
+    const filters = [
+        { key: 'all', label: 'Todos' },
+        { key: 'attending', label: 'Atendendo' },
+        { key: 'unread', label: `Não lidas (${unreadChats})` },
+    ]
 
     useEffect(() => {
         setFilteredChats(
@@ -56,6 +62,8 @@ export default function ChatsList() {
         )
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search, filter, chats])
+
+    // useEffect(() => {})
 
     return (
         <div className='w-[350px] bg-background dark:bg-zinc-900 h-full border-x-1 flex flex-col gap-3'>
@@ -120,7 +128,17 @@ function ChatItem({ chat }: ChatItemParams) {
                         {chat.attendingBy && (
                             <EaseTooltip
                                 trigger={
-                                    <span className='bg-blue-500 text-white p-[3px] rounded-full'>
+                                    <span
+                                        className='text-white p-[3px] rounded-full'
+                                        style={{
+                                            background: stc(
+                                                chat.attendingBy.token
+                                            ),
+                                            color: getContrastColor(
+                                                stc(chat.attendingBy.token)
+                                            ),
+                                        }}
+                                    >
                                         <Headphones size={12} />
                                     </span>
                                 }
@@ -215,4 +233,16 @@ function replaceType(type: MediaType) {
         default:
             return 'Mensagem não disponível'
     }
+}
+
+function getContrastColor(hex: string): 'black' | 'white' {
+    hex = hex.replace('#', '')
+
+    const r = parseInt(hex.substring(0, 2), 16)
+    const g = parseInt(hex.substring(2, 4), 16)
+    const b = parseInt(hex.substring(4, 6), 16)
+
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+
+    return luminance > 0.5 ? 'black' : 'white'
 }

@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { downloadFile, getFileName } from '@/helpers/files'
 import type { MessageContent } from '@/types/ChatsTypes'
 import { Download, FileText } from 'lucide-react'
 
@@ -9,16 +10,6 @@ export default function DocumentMessage({
 }) {
     if (message.type !== 'document') return
     const { content } = message
-
-    const downloadFile = () => {
-        const link = document.createElement('a')
-        link.href = content.url
-        link.download = getFileName(content.url)
-        link.target = '_blank'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-    }
 
     return (
         <div>
@@ -31,7 +22,7 @@ export default function DocumentMessage({
                 <Button
                     size='icon'
                     variant='outline'
-                    onClick={downloadFile}
+                    onClick={() => downloadFile(content.url)}
                 >
                     <Download />
                 </Button>
@@ -39,16 +30,4 @@ export default function DocumentMessage({
             {content.caption && <p>{content.caption}</p>}
         </div>
     )
-}
-
-function getFileName(url: string) {
-    const path = url.split('?')[0]
-    const fileNameEncoded = path.substring(path.lastIndexOf('/') + 1)
-    const fileName = decodeURIComponent(fileNameEncoded)
-
-    const nameWithoutPrefix = fileName.includes('_')
-        ? fileName.substring(fileName.indexOf('_') + 1)
-        : fileName
-
-    return nameWithoutPrefix
 }

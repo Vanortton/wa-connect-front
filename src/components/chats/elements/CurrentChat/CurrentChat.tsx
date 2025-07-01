@@ -1,12 +1,21 @@
 import { ChatsContext } from '@/contexts/ChatsContext'
 import { MessagesSquare } from 'lucide-react'
-import { useContext } from 'react'
+import { useContext, useEffect } from 'react'
 import ChatMessages from './ChatMessages'
 import Header from './Header'
 import SendMessageForm from './SendMessage'
 
 export default function CurrentChat() {
-    const { chats, currentChat } = useContext(ChatsContext)
+    const { chats, currentChat, setCurrentChat } = useContext(ChatsContext)
+
+    useEffect(() => {
+        const onKeyUp = (e: KeyboardEvent) => {
+            if (e.code === 'Escape') setCurrentChat(null)
+        }
+        document.addEventListener('keyup', onKeyUp, false)
+        return () => document.removeEventListener('keyup', onKeyUp, false)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     if (!currentChat)
         return (

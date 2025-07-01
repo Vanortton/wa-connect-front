@@ -37,7 +37,7 @@ export const useAuth = () => {
                     const user = creds.user
                     await updateProfile(user, { displayName: name })
                     await axios.post(
-                        'http://localhost:3000/users',
+                        'https://backend-779792751824.us-central1.run.app/users',
                         {
                             uid: user.uid,
                             name,

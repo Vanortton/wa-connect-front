@@ -12,7 +12,7 @@ export const useAttendant = () => {
 
     const getConnectionData = async (token: string) => {
         const response = await axios.get(
-            'http://localhost:3000/connection',
+            'https://backend-779792751824.us-central1.run.app/connection',
             {
                 params: { token },
             }
@@ -32,9 +32,9 @@ export const useAttendant = () => {
 
         if (!serverUrl) throw 'Não foi possível localizar servidor'
         const socket = io('https://stores.vazap.com.br', {
-        path: `/${serverUrl}/socket.io`,
-        transports: ['websocket', 'polling'],
-    })
+            path: `/${serverUrl}/socket.io`,
+            transports: ['websocket', 'polling'],
+        })
 
         socket.on('connect', () => {
             addListeners({ socket })
