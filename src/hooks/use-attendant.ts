@@ -22,17 +22,17 @@ export const useAttendant = () => {
     }
 
     const startVM = async (token: string, storeId: string) => {
-        const response = await axios.get(
+        const response = await axios.post(
             `https://backend-779792751824.us-central1.run.app/store/${storeId}/start`,
-            { params: { token } }
+            { token }
         )
         return response.data.status
     }
 
     const getBackStatus = async (token: string, storeId: string) => {
-        const response = await axios.post(
+        const response = await axios.get(
             `https://backend-779792751824.us-central1.run.app/store/${storeId}/status`,
-            { token }
+            { params: { token } }
         )
         return response.data.status
     }
