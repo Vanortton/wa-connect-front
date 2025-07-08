@@ -48,6 +48,7 @@ export default function ChatsList() {
         setFilteredChats(
             chatsArray.filter((chat) => {
                 const chatKey = chat.name || chat.id
+                if (!chatKey) return false
                 const includesSearch = chatKey.includes(search)
                 if (filter === 'attending') {
                     const attendingByMe =

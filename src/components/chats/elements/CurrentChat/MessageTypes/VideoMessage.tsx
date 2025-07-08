@@ -1,3 +1,4 @@
+import { formatWhatsAppText } from '@/helpers/messages'
 import type { MessageContent } from '@/types/ChatsTypes'
 
 export default function VideoMessage({ message }: { message: MessageContent }) {
@@ -14,7 +15,9 @@ export default function VideoMessage({ message }: { message: MessageContent }) {
                 />
             </div>
             {content.caption && (
-                <p className='break-words'>{content.caption}</p>
+                <p className='break-words'>
+                    {formatWhatsAppText(content.caption)}
+                </p>
             )}
         </div>
     )

@@ -8,7 +8,7 @@ import type {
 } from '@/types/ChatsContextTypes'
 import type { Chat, Message } from '@/types/ChatsTypes'
 import type { Attendant } from '@/types/StoreTypes'
-import { collection, onSnapshot } from 'firebase/firestore'
+import { collection, onSnapshot, type DocumentData } from 'firebase/firestore'
 import {
     createContext,
     useEffect,
@@ -34,8 +34,11 @@ type Context = {
     connection: Connection
     setConnection: Dispatch<SetStateAction<Connection>>
     socketRef: React.RefObject<Socket | null>
-    currentChatMsgs: Message[]
+    currentChatMsgs: DocumentData[]
+    setCurrentChatMsgs: Dispatch<SetStateAction<DocumentData[]>>
     onNewMsg: (d: { message: Message }) => Promise<void>
+    replyMessage: Message | null
+    setReplyMessage: Dispatch<SetStateAction<Message | null>>
 }
 
 const ChatsContext = createContext<Context>({} as Context)
@@ -46,7 +49,8 @@ function ChatsProvider({ children }: { children: ReactNode }) {
     const [connection, setConnection] = useState<Connection>({} as Connection)
     const [chats, setChats] = useState<Record<string, Chat>>({})
     const [currentChat, setCurrentChat] = useState<string | null>(null)
-    const [currentChatMsgs, setCurrentChatMsgs] = useState<Message[]>([])
+    const [currentChatMsgs, setCurrentChatMsgs] = useState<DocumentData[]>([])
+    const [replyMessage, setReplyMessage] = useState<Message | null>(null)
     const currentChatRef = useRef<string | null>(null)
     const socketRef = useRef<Socket | null>(null)
     const attendantRef = useRef<Attendant | null>(null)
@@ -69,13 +73,17 @@ function ChatsProvider({ children }: { children: ReactNode }) {
     const onNewMsg = async ({ message }: { message: Message }) => {
         setChatData(message.chatId, 'lastMessage', message)
         if (message.chatId === currentChatRef.current) {
-            console.log('Mensagem no chat atual')
-            setCurrentChatMsgs((prev) => [...prev, message])
-            if (attendantRef.current)
+            const fakeDoc = {
+                id: message.id,
+                data: () => message,
+            }
+            setCurrentChatMsgs((prev) => [fakeDoc, ...prev])
+            if (attendantRef.current) {
                 await updateLastView({
                     chatId: message.chatId,
                     attendant: attendantRef.current,
                 })
+            }
         }
     }
 
@@ -104,9 +112,8 @@ function ChatsProvider({ children }: { children: ReactNode }) {
 
                     const alreadyHasInfo =
                         prevChats[chatId]?.name || prevChats[chatId]?.photo
-                    if (!alreadyHasInfo && socketRef.current) {
+                    if (!alreadyHasInfo && socketRef.current)
                         socketRef.current.emit('get-chat-info', { jid: chatId })
-                    }
                 })
 
                 return updatedChats
@@ -117,15 +124,12 @@ function ChatsProvider({ children }: { children: ReactNode }) {
     }, [connection, connectionStatus])
 
     useEffect(() => {
+        setReplyMessage(null)
         if (currentChat) {
             fetchMessages({ page: 1, chatId: currentChat, connection }).then(
                 (docs) => {
-                    const docsData = docs
-                        .map(
-                            (doc) => ({ ...doc.data(), id: doc.id } as Message)
-                        )
-                        .sort((a, b) => a.timestamp - b.timestamp)
-                    setCurrentChatMsgs(docsData)
+                    if (!docs) return
+                    setCurrentChatMsgs(docs)
                 }
             )
             updateLastView({
@@ -154,7 +158,10 @@ function ChatsProvider({ children }: { children: ReactNode }) {
                 setConnection,
                 socketRef,
                 currentChatMsgs,
+                setCurrentChatMsgs,
                 onNewMsg,
+                replyMessage,
+                setReplyMessage,
             }}
         >
             {children}

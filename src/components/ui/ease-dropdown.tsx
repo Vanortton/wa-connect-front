@@ -8,14 +8,14 @@ import {
 
 type EaseDropdownParams = {
     trigger: ReactNode
-    items: { onClick: () => void; label: string }[]
+    items: { onClick: () => void; label: string | ReactNode }[]
 }
 
 export default function EaseDropdown({ trigger, items }: EaseDropdownParams) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger>{trigger}</DropdownMenuTrigger>
-            <DropdownMenuContent>
+            <DropdownMenuContent className='border-0 shadow-lg'>
                 {items.map((item) => (
                     <DropdownMenuItem onClick={item.onClick}>
                         {item.label}

@@ -15,6 +15,7 @@ import type { Chat } from '@/types/ChatsTypes'
 import {
     ChevronDown,
     EllipsisVertical,
+    HeadphoneOff,
     SquareMousePointer,
     User,
     Users,
@@ -107,7 +108,12 @@ function AttendingControls({ chat }: ChatOnlyParam) {
                                 }
                                 items={[
                                     {
-                                        label: 'Encerrar atendimento',
+                                        label: (
+                                            <div className='flex items-center gap-2'>
+                                                <HeadphoneOff /> Encerrar
+                                                atendimento
+                                            </div>
+                                        ),
                                         onClick: () =>
                                             markAsAttending({
                                                 chatId: chat.id,

@@ -8,6 +8,8 @@ import SendMessageForm from './SendMessage'
 export default function CurrentChat() {
     const { chats, currentChat, setCurrentChat } = useContext(ChatsContext)
 
+    console.log(currentChat)
+
     useEffect(() => {
         const onKeyUp = (e: KeyboardEvent) => {
             if (e.code === 'Escape') setCurrentChat(null)
@@ -30,14 +32,16 @@ export default function CurrentChat() {
 
     const chat = chats[currentChat]
     return (
-        <div className='flex-1 flex flex-col min-h-0'>
-            <Header chat={chat} />
-            <div className='flex-1 flex flex-col bg-muted dark:bg-background min-h-0'>
-                <ChatMessages />
-                <div className='p-4'>
-                    <SendMessageForm />
+        <>
+            <div className='flex-1 flex flex-col min-h-0'>
+                <Header chat={chat} />
+                <div className='flex-1 flex flex-col bg-muted dark:bg-background min-h-0'>
+                    <ChatMessages />
+                    <div className='p-4'>
+                        <SendMessageForm />
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     )
 }

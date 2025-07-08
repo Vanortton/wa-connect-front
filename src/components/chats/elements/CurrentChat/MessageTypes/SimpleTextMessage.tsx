@@ -8,11 +8,5 @@ export default function SimpleTextMessage({
 }) {
     if (message.type !== 'text') return
     const { content } = message
-    return (
-        <p
-            dangerouslySetInnerHTML={{
-                __html: formatWhatsAppText(content.text),
-            }}
-        ></p>
-    )
+    return <p>{formatWhatsAppText(content.text)}</p>
 }

@@ -9,5 +9,10 @@
         "paths": {
             "@/*": ["./src/*"]
         }
-    }
+    },
+    "exclude": [
+        "node_modules/@radix-ui/*/dist",
+        "node_modules/@radix-ui/*/dist/*",
+        "node_modules/@radix-ui/*/dist/**/*.d.ts"
+    ]
 }

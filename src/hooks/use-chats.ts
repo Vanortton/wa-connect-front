@@ -184,7 +184,9 @@ export const useChats = () => {
         } else return []
 
         const snapShot = await getDocs(dbQuery)
-	console.log(snapShot.docs)
+
+        if (snapShot.empty) return null
+
         return snapShot.docs
     }
 

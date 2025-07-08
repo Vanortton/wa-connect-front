@@ -38,7 +38,10 @@ export default function Connect() {
     const navigate = useNavigate()
 
     useEffect(() => {
-        if (connectionStatus === 'connected') navigate('/conversations')
+        if (connectionStatus === 'connected') {
+            setLoading(false)
+            navigate('/conversations')
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [connectionStatus])
 
@@ -50,8 +53,6 @@ export default function Connect() {
         } catch (error) {
             console.error(error)
             toast.error('Falha ao conectar atendente')
-        } finally {
-            setLoading(false)
         }
     }
 

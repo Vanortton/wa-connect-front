@@ -43,6 +43,19 @@ export default function Sidebar() {
                             </TooltipContent>
                         </Tooltip>
                     ))}
+                    {/* <QuickMessage>
+                        <div className='relative'>
+                            <Button
+                                className='rounded-full size-10'
+                                variant='outline'
+                            >
+                                <Zap />
+                            </Button>
+                            <Badge className='absolute top-[-4px] right-[-6px] text-[10px] p-0 px-1'>
+                                New
+                            </Badge>
+                        </div>
+                    </QuickMessage> */}
                 </div>
                 <div className='flex flex-col items-center gap-3'>
                     <Button asChild>

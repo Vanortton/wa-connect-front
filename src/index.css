@@ -112,11 +112,26 @@
 
 .scrollbar-transparent {
     scrollbar-width: thin;
-    scrollbar-color: rgba(95, 100, 110, 0.603) transparent; /* scroll thumb and track */
+    scrollbar-color: rgba(95, 100, 110, 0.603) transparent;
 }
 
-.msg-link {
-    color: var(--color-blue-500);
+.icon-h-flip {
+    transform: scaleX(-1);
+}
+
+.highlighted-message {
+    animation: 0.5s pulseGrow3D 0.7s ease forwards;
+    border-radius: 8px;
+}
+
+@keyframes pulseGrow3D {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
 }
 
 @layer base {

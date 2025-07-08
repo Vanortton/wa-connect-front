@@ -20,10 +20,7 @@ export default function ExtendedMessage({
                     </p>
                 </div>
             )}
-            <p
-                className='mt-1 break-words'
-                dangerouslySetInnerHTML={{ __html: formatWhatsAppText(text) }}
-            ></p>
+            <p className='mt-1 break-all'>{formatWhatsAppText(text)}</p>
         </div>
     )
 }

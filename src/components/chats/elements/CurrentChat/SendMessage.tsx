@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -14,25 +15,28 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { ChatsContext } from '@/contexts/ChatsContext'
+import { getBasicMessageContent } from '@/helpers/messages'
 import { cn } from '@/lib/utils'
+import type { FileType } from '@/types/SendMessageTypes'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { FileText, Headphones, Images, Plus, SendHorizonal } from 'lucide-react'
+import {
+    FileText,
+    Headphones,
+    Images,
+    Plus,
+    SendHorizonal,
+    X,
+} from 'lucide-react'
 import { useContext, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
 const messageSchema = z.object({ content: z.string() })
-type TextType = { text: string }
-type FileType = {
-    document: string
-    fileName: string
-    mimeType: string
-}
-type ContentMessage = TextType | FileType
 
 export default function SendMessageForm() {
-    const { socketRef, currentChat } = useContext(ChatsContext)
+    const { socketRef, currentChat, replyMessage, setReplyMessage } =
+        useContext(ChatsContext)
     const form = useForm<z.infer<typeof messageSchema>>({
         resolver: zodResolver(messageSchema),
         defaultValues: { content: '' },
@@ -43,7 +47,7 @@ export default function SendMessageForm() {
         content,
     }: {
         type: 'text' | 'file'
-        content: ContentMessage
+        content: string | FileType
     }) => {
         if (!socketRef.current) {
             toast.error('A mensagem não foi enviada')
@@ -52,14 +56,19 @@ export default function SendMessageForm() {
         if (type === 'text')
             socketRef.current.emit('send-message', {
                 jid: currentChat,
-                content: { type: 'text', text: (content as TextType).text },
+                type,
+                content,
+                reply: replyMessage?.id,
             })
         else if (type === 'file') {
             socketRef.current.emit('send-message', {
                 jid: currentChat,
-                content: { type: 'file', file: content },
+                type,
+                content,
+                reply: replyMessage?.id,
             })
         }
+        setReplyMessage(null)
         form.reset()
     }
 
@@ -69,9 +78,10 @@ export default function SendMessageForm() {
                 onSubmit={form.handleSubmit(({ content }) => {
                     handleSendMessage({
                         type: 'text',
-                        content: { text: content },
+                        content,
                     })
                 })}
+                autoComplete='off'
             >
                 <FormField
                     name='content'
@@ -82,26 +92,29 @@ export default function SendMessageForm() {
                             className='w-full'
                         >
                             <FormControl>
-                                <div className='relative'>
-                                    <SendFile
-                                        onSendFile={(fileContent) =>
-                                            handleSendMessage({
-                                                type: 'file',
-                                                content: fileContent,
-                                            })
-                                        }
-                                    />
-                                    <Input
-                                        placeholder='Digite uma mensagem'
-                                        {...field}
-                                        className='rounded-full h-auto border-0 py-3 px-12 text-lg bg-background shadow-sm'
-                                    />
-                                    <Button
-                                        size='icon'
-                                        className='rounded-full p-2 absolute top-[50%] right-1 translate-y-[-50%]'
-                                    >
-                                        <SendHorizonal />
-                                    </Button>
+                                <div className='space-y-2'>
+                                    <ReplyMessage />
+                                    <div className='relative'>
+                                        <SendFile
+                                            onSendFile={(fileContent) =>
+                                                handleSendMessage({
+                                                    type: 'file',
+                                                    content: fileContent,
+                                                })
+                                            }
+                                        />
+                                        <Input
+                                            placeholder='Digite uma mensagem'
+                                            {...field}
+                                            className='rounded-full h-auto border-0 py-3 px-12 text-lg bg-background shadow-sm'
+                                        />
+                                        <Button
+                                            size='icon'
+                                            className='rounded-full p-2 absolute top-[50%] right-1 translate-y-[-50%]'
+                                        >
+                                            <SendHorizonal />
+                                        </Button>
+                                    </div>
                                 </div>
                             </FormControl>
                             <FormMessage />
@@ -110,6 +123,35 @@ export default function SendMessageForm() {
                 />
             </form>
         </Form>
+    )
+}
+
+function ReplyMessage() {
+    const { replyMessage, setReplyMessage } = useContext(ChatsContext)
+
+    if (!replyMessage) return
+    return (
+        <Card className='border-0 p-0 border-s-4 border-emerald-500 mx-1 rounded-md'>
+            <CardContent className='px-4 py-2 flex justify-between items-center'>
+                <div>
+                    <div className='text-xs text-muted-foreground'>
+                        {replyMessage.sender.pushName}
+                    </div>
+                    <div>{getBasicMessageContent(replyMessage.content)}</div>
+                </div>
+                <Button
+                    className='rounded-full h-auto p-0 has-[>svg]:px-0 size-5'
+                    variant='ghost'
+                    type='button'
+                    onClick={() => setReplyMessage(null)}
+                >
+                    <X
+                        className='size-3'
+                        strokeWidth={3}
+                    />
+                </Button>
+            </CardContent>
+        </Card>
     )
 }
 

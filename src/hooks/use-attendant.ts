@@ -1,5 +1,6 @@
 import { ChatsContext } from '@/contexts/ChatsContext'
 import { auth } from '@/firebase'
+import type { Store } from '@/types/StoreTypes'
 import axios from 'axios'
 import { signInWithCustomToken, signOut } from 'firebase/auth'
 import { useContext } from 'react'
@@ -20,7 +21,71 @@ export const useAttendant = () => {
         return response.data.attendant
     }
 
+    const startVM = async (token: string, storeId: string) => {
+        const response = await axios.get(
+            `https://backend-779792751824.us-central1.run.app/store/${storeId}/start`,
+            { params: { token } }
+        )
+        return response.data.status
+    }
+
+    const getBackStatus = async (token: string, storeId: string) => {
+        const response = await axios.get(
+            `https://backend-779792751824.us-central1.run.app/store/${storeId}/status`,
+            { params: { token } }
+        )
+        return response.data.status
+    }
+
+    const awaitBackStart = async (token: string, store: Store) => {
+        const id = toast('')
+        toast.loading('Conectando serviço', { id })
+
+        let attempts = 0
+        let vmRunning = false
+
+        while (true) {
+            try {
+                if (attempts > 120) {
+                    toast.error(
+                        'Não foi possível estabelecer conexão com os servidores',
+                        { id }
+                    )
+                    return false
+                } else if (attempts > 60)
+                    toast.loading('Está demorando mais que o esperado', { id })
+                else if (attempts > 30)
+                    toast.loading('Ainda conectando, aguarde', { id })
+                else if (attempts > 1 && !vmRunning)
+                    toast.loading(
+                        'Inicializando servidores, isso pode levar alguns segundos',
+                        { id }
+                    )
+
+                if (!vmRunning) {
+                    const status = await getBackStatus(token, store.id)
+                    if (status === 'RUNNING') vmRunning = true
+                    else if (status === 'TERMINATED') startVM(token, store.id)
+                }
+
+                if (vmRunning) {
+                    console.log('Verificando se tá vivo:', store.connectionUrl)
+                    await axios.get(`${store.connectionUrl}/health`)
+                    toast.dismiss(id)
+                    return true
+                }
+
+                await new Promise((r) => setTimeout(r, 1000))
+            } catch (error) {
+                console.log(error)
+            } finally {
+                attempts += 1
+            }
+        }
+    }
+
     const connect = async (token: string) => {
+        console.log('Inicializando conexão')
         setConnectionStatus('loading')
         const connectionData = await getConnectionData(token)
         const { attendant, store } = connectionData
@@ -31,6 +96,10 @@ export const useAttendant = () => {
         setConnection(connectionData)
 
         if (!serverUrl) throw 'Não foi possível localizar servidor'
+        const running = await awaitBackStart(token, store)
+        if (!running)
+            throw 'Os servidores demoraram muito para responder, aguarde alguns minutos e tente novamente'
+
         const socket = io('https://stores.vazap.com.br', {
             path: `/${serverUrl}/socket.io`,
             transports: ['websocket', 'polling'],

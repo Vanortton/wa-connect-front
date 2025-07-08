@@ -19,15 +19,17 @@ type ExtendedTextContent = {
     text: string
 }
 
+type ReplyData = (MessageContent & { id?: string }) | null
+
 type MessageContent =
-    | { type: 'text'; content: TextContent; reply: MessageContent | null }
+    | { type: 'text'; content: TextContent; reply: ReplyData }
     | {
           type: 'extendedText'
           content: ExtendedTextContent
-          reply: MessageContent | null
+          reply: ReplyData
       }
-    | { type: MediaType; content: MediaContent; reply: MessageContent | null }
-    | { type: 'unknown'; content: null; reply: MessageContent | null }
+    | { type: MediaType; content: MediaContent; reply: ReplyData }
+    | { type: 'unknown'; content: null; reply: ReplyData }
 
 type SenderInfo = {
     fromMe: boolean | null
