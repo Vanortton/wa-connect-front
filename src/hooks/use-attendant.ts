@@ -30,7 +30,7 @@ export const useAttendant = () => {
     }
 
     const getBackStatus = async (token: string, storeId: string) => {
-        const response = await axios.get(
+        const response = await axios.post(
             `https://backend-779792751824.us-central1.run.app/store/${storeId}/status`,
             { params: { token } }
         )
