@@ -69,10 +69,19 @@ export const useAttendant = () => {
                 }
 
                 if (vmRunning) {
-                    console.log('Verificando se tá vivo:', store.connectionUrl)
-                    await axios.get(`${store.connectionUrl}/health`)
-                    toast.dismiss(id)
-                    return true
+                    try {
+                        console.log(
+                            'Verificando se tá vivo:',
+                            store.connectionUrl
+                        )
+                        await axios.get(
+                            `https://stores.vazap.com.br/${store.connectionUrl}/health`
+                        )
+                        toast.dismiss(id)
+                        return true
+                    } catch {
+                        console.log('Aguardando')
+                    }
                 }
 
                 await new Promise((r) => setTimeout(r, 1000))
