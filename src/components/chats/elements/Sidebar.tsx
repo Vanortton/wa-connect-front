@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { ToggleTheme } from '@/components/ui/toggle-theme'
@@ -7,8 +8,9 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { CircleFadingPlus, MessageSquareText } from 'lucide-react'
+import { CircleFadingPlus, MessageSquareText, Zap } from 'lucide-react'
 import Vazap from '../../../assets/vazap.webp'
+import QuickMessage from './QuickMessages/QuickMessages'
 
 export default function Sidebar() {
     const items = [
@@ -43,7 +45,7 @@ export default function Sidebar() {
                             </TooltipContent>
                         </Tooltip>
                     ))}
-                    {/* <QuickMessage>
+                    <QuickMessage>
                         <div className='relative'>
                             <Button
                                 className='rounded-full size-10'
@@ -55,7 +57,7 @@ export default function Sidebar() {
                                 New
                             </Badge>
                         </div>
-                    </QuickMessage> */}
+                    </QuickMessage>
                 </div>
                 <div className='flex flex-col items-center gap-3'>
                     <Button asChild>

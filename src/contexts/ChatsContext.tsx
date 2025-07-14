@@ -6,7 +6,7 @@ import type {
     FieldValueMap,
     Status,
 } from '@/types/ChatsContextTypes'
-import type { Chat, Message } from '@/types/ChatsTypes'
+import type { Chat, Message, QuickMessage } from '@/types/ChatsTypes'
 import type { Attendant } from '@/types/StoreTypes'
 import { collection, onSnapshot, type DocumentData } from 'firebase/firestore'
 import {
@@ -39,6 +39,7 @@ type Context = {
     onNewMsg: (d: { message: Message }) => Promise<void>
     replyMessage: Message | null
     setReplyMessage: Dispatch<SetStateAction<Message | null>>
+    quickMessages: QuickMessage[]
 }
 
 const ChatsContext = createContext<Context>({} as Context)
@@ -51,6 +52,7 @@ function ChatsProvider({ children }: { children: ReactNode }) {
     const [currentChat, setCurrentChat] = useState<string | null>(null)
     const [currentChatMsgs, setCurrentChatMsgs] = useState<DocumentData[]>([])
     const [replyMessage, setReplyMessage] = useState<Message | null>(null)
+    const [quickMessages, setQuickMessages] = useState<QuickMessage[]>([])
     const currentChatRef = useRef<string | null>(null)
     const socketRef = useRef<Socket | null>(null)
     const attendantRef = useRef<Attendant | null>(null)
@@ -82,6 +84,7 @@ function ChatsProvider({ children }: { children: ReactNode }) {
                 await updateLastView({
                     chatId: message.chatId,
                     attendant: attendantRef.current,
+                    socket: socketRef.current,
                 })
             }
         }
@@ -94,33 +97,54 @@ function ChatsProvider({ children }: { children: ReactNode }) {
         const { attendant, store } = connection
         const path = `users/${attendant.user}/stores/${store.id}/sync`
 
-        const unsubscribe = onSnapshot(collection(db, path), (snapshot) => {
-            if (snapshot.empty) return
+        const unsubscribeChats = onSnapshot(
+            collection(db, path),
+            (snapshot) => {
+                if (snapshot.empty) return
 
-            setChats((prevChats) => {
-                const updatedChats: Record<string, Chat> = { ...prevChats }
+                setChats((prevChats) => {
+                    const updatedChats: Record<string, Chat> = { ...prevChats }
 
-                snapshot.docs.forEach((doc) => {
-                    const chatId = doc.id
-                    const chat = doc.data() as Chat
+                    snapshot.docs.forEach((doc) => {
+                        const chatId = doc.id
+                        const chat = doc.data() as Chat
 
-                    updatedChats[chatId] = {
-                        ...prevChats[chatId],
-                        ...chat,
-                        id: chatId,
-                    }
+                        updatedChats[chatId] = {
+                            ...prevChats[chatId],
+                            ...chat,
+                            id: chatId,
+                        }
 
-                    const alreadyHasInfo =
-                        prevChats[chatId]?.name || prevChats[chatId]?.photo
-                    if (!alreadyHasInfo && socketRef.current)
-                        socketRef.current.emit('get-chat-info', { jid: chatId })
+                        const alreadyHasInfo = prevChats[chatId]?.infosLoaded
+                        if (!alreadyHasInfo && socketRef.current)
+                            socketRef.current.emit('get-chat-info', {
+                                jid: chatId,
+                            })
+                    })
+
+                    return updatedChats
                 })
+            }
+        )
 
-                return updatedChats
-            })
-        })
+        const messagesPath = `users/${attendant.user}/stores/${store.id}/quick-messages`
 
-        return () => unsubscribe()
+        const unsubscribeMessages = onSnapshot(
+            collection(db, messagesPath),
+            (snapshot) => {
+                if (snapshot.empty) return
+                const messages = snapshot.docs.map((doc) =>
+                    doc.data()
+                ) as QuickMessage[]
+
+                setQuickMessages(messages)
+            }
+        )
+
+        return () => {
+            unsubscribeChats()
+            unsubscribeMessages()
+        }
     }, [connection, connectionStatus])
 
     useEffect(() => {
@@ -135,6 +159,7 @@ function ChatsProvider({ children }: { children: ReactNode }) {
             updateLastView({
                 chatId: currentChat,
                 attendant: connection.attendant,
+                socket: socketRef.current,
             })
         }
         currentChatRef.current = currentChat
@@ -162,6 +187,7 @@ function ChatsProvider({ children }: { children: ReactNode }) {
                 onNewMsg,
                 replyMessage,
                 setReplyMessage,
+                quickMessages,
             }}
         >
             {children}

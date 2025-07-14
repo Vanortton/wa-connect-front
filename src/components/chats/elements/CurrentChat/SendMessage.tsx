@@ -1,3 +1,14 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useContext, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { z } from 'zod'
+
+import { ChatsContext } from '@/contexts/ChatsContext'
+import { getBasicMessageContent } from '@/helpers/messages'
+import { cn } from '@/lib/utils'
+import type { FileType } from '@/types/SendMessageTypes'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -13,12 +24,8 @@ import {
     FormItem,
     FormMessage,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { ChatsContext } from '@/contexts/ChatsContext'
-import { getBasicMessageContent } from '@/helpers/messages'
-import { cn } from '@/lib/utils'
-import type { FileType } from '@/types/SendMessageTypes'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { Textarea } from '@/components/ui/textarea'
+
 import {
     FileText,
     Headphones,
@@ -27,20 +34,114 @@ import {
     SendHorizonal,
     X,
 } from 'lucide-react'
-import { useContext, useRef } from 'react'
-import { useForm } from 'react-hook-form'
-import { toast } from 'sonner'
-import { z } from 'zod'
 
 const messageSchema = z.object({ content: z.string() })
 
 export default function SendMessageForm() {
-    const { socketRef, currentChat, replyMessage, setReplyMessage } =
-        useContext(ChatsContext)
+    const {
+        socketRef,
+        currentChat,
+        replyMessage,
+        quickMessages,
+        setReplyMessage,
+    } = useContext(ChatsContext)
     const form = useForm<z.infer<typeof messageSchema>>({
         resolver: zodResolver(messageSchema),
         defaultValues: { content: '' },
     })
+
+    const [autocompleteOpen, setAutocompleteOpen] = useState(false)
+    const [filteredQuickMessages, setFilteredQuickMessages] = useState<
+        typeof quickMessages
+    >([])
+    const [highlightIndex, setHighlightIndex] = useState(0)
+
+    const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+    // Atualiza autocomplete baseado no texto depois do último '/'
+    const updateAutocomplete = (text: string) => {
+        const lastSlash = text.lastIndexOf('/')
+        if (lastSlash === -1) {
+            setAutocompleteOpen(false)
+            return
+        }
+
+        // pega o texto logo após o último '/'
+        const query = text.slice(lastSlash + 1).toLowerCase()
+
+        if (query.length === 0) {
+            // Mostra todas quickMessages se só tiver o '/'
+            setFilteredQuickMessages(quickMessages)
+            setAutocompleteOpen(true)
+            setHighlightIndex(0)
+            return
+        }
+
+        const filtered = quickMessages.filter((qm) =>
+            qm.shortcut.toLowerCase().startsWith(query)
+        )
+
+        if (filtered.length === 0) {
+            setAutocompleteOpen(false)
+            return
+        }
+
+        setFilteredQuickMessages(filtered)
+        setAutocompleteOpen(true)
+        setHighlightIndex(0)
+    }
+
+    // controla o autocomplete conforme o usuário digita no textarea
+    const onContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        form.setValue('content', e.target.value)
+        updateAutocomplete(e.target.value)
+    }
+
+    // handle das teclas para navegar e selecionar autocomplete
+    const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (!autocompleteOpen) return
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault()
+            setHighlightIndex((i) => (i + 1) % filteredQuickMessages.length)
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault()
+            setHighlightIndex(
+                (i) =>
+                    (i - 1 + filteredQuickMessages.length) %
+                    filteredQuickMessages.length
+            )
+        } else if (e.key === 'Enter') {
+            if (
+                highlightIndex >= 0 &&
+                highlightIndex < filteredQuickMessages.length
+            ) {
+                e.preventDefault()
+                selectQuickMessage(filteredQuickMessages[highlightIndex])
+            }
+        } else if (e.key === 'Escape') {
+            setAutocompleteOpen(false)
+        }
+    }
+
+    // Insere a quickMessage selecionada no textarea, substituindo o texto após o último '/'
+    const selectQuickMessage = (qm: (typeof quickMessages)[0]) => {
+        const currentContent = form.getValues('content')
+        const lastSlash = currentContent.lastIndexOf('/')
+        if (lastSlash === -1) return
+
+        const newContent = currentContent.slice(0, lastSlash) + qm.text + ' '
+        form.setValue('content', newContent)
+        setAutocompleteOpen(false)
+        // coloca o foco e move cursor pra o final
+        setTimeout(() => {
+            textareaRef.current?.focus()
+            textareaRef.current?.setSelectionRange(
+                newContent.length,
+                newContent.length
+            )
+        }, 0)
+    }
 
     const handleSendMessage = ({
         type,
@@ -70,6 +171,7 @@ export default function SendMessageForm() {
         }
         setReplyMessage(null)
         form.reset()
+        setAutocompleteOpen(false)
     }
 
     return (
@@ -82,6 +184,7 @@ export default function SendMessageForm() {
                     })
                 })}
                 autoComplete='off'
+                className='relative'
             >
                 <FormField
                     name='content'
@@ -92,7 +195,7 @@ export default function SendMessageForm() {
                             className='w-full'
                         >
                             <FormControl>
-                                <div className='space-y-2'>
+                                <div className='space-y-2 relative'>
                                     <ReplyMessage />
                                     <div className='relative'>
                                         <SendFile
@@ -103,10 +206,14 @@ export default function SendMessageForm() {
                                                 })
                                             }
                                         />
-                                        <Input
-                                            placeholder='Digite uma mensagem'
+                                        <Textarea
                                             {...field}
-                                            className='rounded-full h-auto border-0 py-3 px-12 text-lg bg-background shadow-sm'
+                                            placeholder='Digite uma mensagem'
+                                            className='resize-none rounded-3xl min-h-[48px] max-h-[150px] pr-12 pl-4 py-3 text-lg bg-background border-0 shadow-sm focus-visible:ring-0 focus-visible:ring-offset-0 px-12 scrollbar-transparent'
+                                            rows={0}
+                                            ref={textareaRef}
+                                            onChange={onContentChange}
+                                            onKeyDown={onKeyDown}
                                         />
                                         <Button
                                             size='icon'
@@ -114,6 +221,38 @@ export default function SendMessageForm() {
                                         >
                                             <SendHorizonal />
                                         </Button>
+
+                                        {autocompleteOpen && (
+                                            <ul className='absolute z-50 bg-background border border-muted rounded-md shadow-md max-h-40 overflow-auto w-full mb-1 left-0 bottom-full px-2 py-1'>
+                                                {filteredQuickMessages.map(
+                                                    (qm, i) => (
+                                                        <li
+                                                            key={qm.shortcut}
+                                                            className={cn(
+                                                                'cursor-pointer p-1 rounded',
+                                                                i ===
+                                                                    highlightIndex
+                                                                    ? 'bg-muted'
+                                                                    : ''
+                                                            )}
+                                                            onMouseDown={(
+                                                                e
+                                                            ) => {
+                                                                e.preventDefault()
+                                                                selectQuickMessage(
+                                                                    qm
+                                                                )
+                                                            }}
+                                                        >
+                                                            <b>
+                                                                /{qm.shortcut}
+                                                            </b>
+                                                            : {qm.text}
+                                                        </li>
+                                                    )
+                                                )}
+                                            </ul>
+                                        )}
                                     </div>
                                 </div>
                             </FormControl>
@@ -129,7 +268,7 @@ export default function SendMessageForm() {
 function ReplyMessage() {
     const { replyMessage, setReplyMessage } = useContext(ChatsContext)
 
-    if (!replyMessage) return
+    if (!replyMessage) return null
     return (
         <Card className='border-0 p-0 border-s-4 border-emerald-500 mx-1 rounded-md'>
             <CardContent className='px-4 py-2 flex justify-between items-center'>
@@ -204,7 +343,6 @@ function SendFile({ onSendFile }: { onSendFile: (file: FileType) => void }) {
                 ref={fileInputRef}
                 onChange={handleFileChange}
             />
-
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button

@@ -1,4 +1,11 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import EaseTooltip from '@/components/ui/ease-tooltip'
 import { ChatsContext } from '@/contexts/ChatsContext'
 import { removeWhatsAppFormatting } from '@/helpers/messages'
@@ -6,6 +13,8 @@ import { useChats } from '@/hooks/use-chats'
 import { cn } from '@/lib/utils'
 import type { Chat, MediaType, Message } from '@/types/ChatsTypes'
 import {
+    CheckCheck,
+    ChevronDown,
     File,
     Headphones,
     Image,
@@ -97,7 +106,7 @@ function ChatItem({ chat }: ChatItemParams) {
     const { currentChat, setCurrentChat } = useContext(ChatsContext)
     const { getFallbackName, formatTime } = useChats()
     const buttonClass =
-        'flex items-center gap-3 py-[10px] px-[14px] rounded-xl transition-colors'
+        'relative group flex items-center gap-3 py-[10px] px-[14px] rounded-xl transition-colors'
     const displayName = chat.name || getFallbackName(chat.id)
     const hasUnreadMessages = chat.unreadMessages > 0
 
@@ -169,7 +178,45 @@ function ChatItem({ chat }: ChatItemParams) {
                     )}
                 </div>
             </div>
+
+            <ChatActions chat={chat} />
         </div>
+    )
+}
+
+function ChatActions({ chat }: ChatItemParams) {
+    const { connection } = useContext(ChatsContext)
+    const { markAsUnread } = useChats()
+    const { attendant } = connection
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    className='h-auto p-0 has-[>svg]:px-0 rounded-sm absolute top-0 right-1 invisible group-hover:visible'
+                    variant='ghost'
+                    onClick={(e) => {
+                        e.stopPropagation()
+                    }}
+                >
+                    <ChevronDown />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+                side='right'
+                sideOffset={10}
+                className='border-0 rounded-lg shadow-md'
+            >
+                <DropdownMenuItem
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        markAsUnread({ chatId: chat.id, attendant })
+                    }}
+                >
+                    <CheckCheck /> Marcar como não lido
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     )
 }
 

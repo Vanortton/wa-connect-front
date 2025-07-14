@@ -40,6 +40,7 @@ type FetchMessagesParams = {
 type UpdateLastViewParams = {
     chatId: string
     attendant: Attendant
+    socket?: Socket | null
 }
 
 type MarkAsAttendingParams = UpdateLastViewParams & {
@@ -54,10 +55,10 @@ export const useChats = () => {
         setConnectionStatus(status)
 
     const updateChatInfo = ({ jid, name, photo, isGroup }: ChatInfo) => {
-        console.log('Update chat data:', jid)
         setChatData(jid, 'name', name)
         setChatData(jid, 'photo', photo)
         setChatData(jid, 'isGroup', isGroup)
+        setChatData(jid, 'infosLoaded', true)
     }
 
     const clearSocketListeners = (socket: Socket) => {
@@ -209,6 +210,7 @@ export const useChats = () => {
     const updateLastView = async ({
         chatId,
         attendant,
+        socket,
     }: UpdateLastViewParams) => {
         console.log('Atualizando ultima visualização')
         const docRef = doc(
@@ -216,6 +218,21 @@ export const useChats = () => {
             `users/${attendant.user}/stores/${attendant.store}/sync/${chatId}`
         )
         await updateDoc(docRef, { lastView: Date.now(), unreadMessages: 0 })
+        if (socket) {
+            console.log('Socket encontrado, marcando como lida')
+            // socket.emit('mark-as-read', { jid: chatId })
+        }
+    }
+
+    const markAsUnread = async ({
+        chatId,
+        attendant,
+    }: UpdateLastViewParams) => {
+        const docRef = doc(
+            db,
+            `users/${attendant.user}/stores/${attendant.store}/sync/${chatId}`
+        )
+        await updateDoc(docRef, { lastView: Date.now(), unreadMessages: true })
     }
 
     return {
@@ -225,5 +242,6 @@ export const useChats = () => {
         fetchMessages,
         markAsAttending,
         updateLastView,
+        markAsUnread,
     }
 }

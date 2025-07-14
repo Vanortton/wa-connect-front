@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/tooltip'
 import { StoresContext } from '@/contexts/StoresContext'
 import { UserContext } from '@/contexts/UserContext'
+import { STORE_URL } from '@/globals'
 import { Cog, EllipsisVertical, Loader2Icon, RotateCcw } from 'lucide-react'
 import { useContext, useEffect, useState } from 'react'
 import { io } from 'socket.io-client'
@@ -14,6 +15,7 @@ import { toast } from 'sonner'
 import QRCode from './QRCode'
 
 type Params = { storeId: string; connectionUrl: string }
+const isProd = import.meta.env.PROD
 
 export default function ConnectStore({ storeId, connectionUrl }: Params) {
     const [tryConnect, setTryConnect] = useState<boolean>(false)
@@ -22,10 +24,16 @@ export default function ConnectStore({ storeId, connectionUrl }: Params) {
     const [token, setToken] = useState<string>('')
     const { user } = useContext(UserContext)
     const { setStores } = useContext(StoresContext)
-    const socket = io('https://stores.vazap.com.br', {
-        path: `/${connectionUrl}/socket.io`,
-        transports: ['websocket', 'polling'],
-    })
+
+    const socketUrl = isProd ? STORE_URL : connectionUrl
+    const socketConfig = isProd
+        ? {
+              path: `/${connectionUrl}/socket.io`,
+              transports: ['websocket', 'polling'],
+          }
+        : {}
+
+    const socket = io(socketUrl, socketConfig)
 
     useEffect(() => {
         if (tryConnect && user) {

@@ -12,11 +12,11 @@ function formatWhatsAppText(text: string): React.ReactNode {
         if (buffer.length === 0) return
         const paragraph = buffer.join('\n')
         elements.push(
-            <span key={elements.length}>
+            <React.Fragment key={elements.length}>
                 {processInline(paragraph).map((part, i) => (
                     <React.Fragment key={i}>{part}</React.Fragment>
                 ))}
-            </span>
+            </React.Fragment>
         )
         buffer = []
     }

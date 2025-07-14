@@ -1,5 +1,6 @@
 import { ChatsContext } from '@/contexts/ChatsContext'
 import { auth } from '@/firebase'
+import { BASE_URL, STORE_URL } from '@/globals'
 import type { Store } from '@/types/StoreTypes'
 import axios from 'axios'
 import { signInWithCustomToken, signOut } from 'firebase/auth'
@@ -7,23 +8,23 @@ import { useContext } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { toast } from 'sonner'
 import { useChats } from './use-chats'
+
+const isProd = import.meta.env.PROD
+
 export const useAttendant = () => {
     const { addListeners } = useChats()
     const { setConnectionStatus, setConnection } = useContext(ChatsContext)
 
     const getConnectionData = async (token: string) => {
-        const response = await axios.get(
-            'https://backend-779792751824.us-central1.run.app/connection',
-            {
-                params: { token },
-            }
-        )
+        const response = await axios.get(`${BASE_URL}/connection`, {
+            params: { token },
+        })
         return response.data.attendant
     }
 
     const startVM = async (token: string, storeId: string) => {
         const response = await axios.post(
-            `https://backend-779792751824.us-central1.run.app/store/${storeId}/start`,
+            `${BASE_URL}/store/${storeId}/start`,
             { token }
         )
         return response.data.status
@@ -31,7 +32,7 @@ export const useAttendant = () => {
 
     const getBackStatus = async (token: string, storeId: string) => {
         const response = await axios.get(
-            `https://backend-779792751824.us-central1.run.app/store/${storeId}/status`,
+            `${BASE_URL}/store/${storeId}/status`,
             { params: { token } }
         )
         return response.data.status
@@ -65,18 +66,17 @@ export const useAttendant = () => {
                 if (!vmRunning) {
                     const status = await getBackStatus(token, store.id)
                     if (status === 'RUNNING') vmRunning = true
-                    else if (status === 'TERMINATED') startVM(token, store.id)
+                    else if (status === 'TERMINATED' && isProd)
+                        startVM(token, store.id)
                 }
 
                 if (vmRunning) {
                     try {
-                        console.log(
-                            'Verificando se tá vivo:',
-                            store.connectionUrl
-                        )
-                        await axios.get(
-                            `https://stores.vazap.com.br/${store.connectionUrl}/health`
-                        )
+                        const url = import.meta.env.PROD
+                            ? `https://stores.vazap.com.br/${store.connectionUrl}/health`
+                            : `${store.connectionUrl}/health`
+                        console.log('Verificando se tá vivo:', url)
+                        await axios.get(url)
                         toast.dismiss(id)
                         return true
                     } catch {
@@ -109,10 +109,15 @@ export const useAttendant = () => {
         if (!running)
             throw 'Os servidores demoraram muito para responder, aguarde alguns minutos e tente novamente'
 
-        const socket = io('https://stores.vazap.com.br', {
-            path: `/${serverUrl}/socket.io`,
-            transports: ['websocket', 'polling'],
-        })
+        const socketUrl = isProd ? STORE_URL : serverUrl
+        const socketConfig = isProd
+            ? {
+                  path: `/${serverUrl}/socket.io`,
+                  transports: ['websocket', 'polling'],
+              }
+            : {}
+
+        const socket = io(socketUrl, socketConfig)
 
         socket.on('connect', () => {
             addListeners({ socket })

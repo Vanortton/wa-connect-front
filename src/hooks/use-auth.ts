@@ -1,4 +1,5 @@
 import { auth } from '@/firebase'
+import { BASE_URL } from '@/globals'
 import axios from 'axios'
 import {
     createUserWithEmailAndPassword,
@@ -36,14 +37,11 @@ export const useAuth = () => {
                 .then(async (creds) => {
                     const user = creds.user
                     await updateProfile(user, { displayName: name })
-                    await axios.post(
-                        'https://backend-779792751824.us-central1.run.app/users',
-                        {
-                            uid: user.uid,
-                            name,
-                            email,
-                        }
-                    )
+                    await axios.post(`${BASE_URL}/users`, {
+                        uid: user.uid,
+                        name,
+                        email,
+                    })
                     resolve({ ...user, displayName: name })
                 })
                 .catch((error) => {

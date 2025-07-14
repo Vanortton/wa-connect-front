@@ -1,35 +1,27 @@
+import { BASE_URL } from '@/globals'
 import axios from 'axios'
 
 export const useStores = () => {
     const getStores = async (userToken: string) => {
-        const response = await axios.get(
-            'https://backend-779792751824.us-central1.run.app/stores',
-            {
-                params: { idToken: userToken },
-            }
-        )
+        const response = await axios.get(`${BASE_URL}/stores`, {
+            params: { idToken: userToken },
+        })
         const stores = response.data.stores
         return stores
     }
 
     const createStore = async (userToken: string, surname: string) => {
-        await axios.post(
-            'https://backend-779792751824.us-central1.run.app/stores',
-            {
-                idToken: userToken,
-                surname,
-            }
-        )
+        await axios.post(`${BASE_URL}/stores`, {
+            idToken: userToken,
+            surname,
+        })
         return
     }
 
     const deleteStore = async (userToken: string, storeId: string) => {
-        await axios.delete(
-            `https://backend-779792751824.us-central1.run.app/store/${storeId}`,
-            {
-                params: { idToken: userToken },
-            }
-        )
+        await axios.delete(`${BASE_URL}/store/${storeId}`, {
+            params: { idToken: userToken },
+        })
         return
     }
 
@@ -38,13 +30,10 @@ export const useStores = () => {
         storeId: string,
         name: string
     ) => {
-        await axios.post(
-            `https://backend-779792751824.us-central1.run.app/store/${storeId}/attendants`,
-            {
-                idToken: userToken,
-                name,
-            }
-        )
+        await axios.post(`${BASE_URL}/store/${storeId}/attendants`, {
+            idToken: userToken,
+            name,
+        })
         return
     }
 
@@ -53,10 +42,9 @@ export const useStores = () => {
         storeId: string,
         token: string
     ) => {
-        await axios.delete(
-            `https://backend-779792751824.us-central1.run.app/store/${storeId}/attendants/${token}`,
-            { params: { idToken: userToken } }
-        )
+        await axios.delete(`${BASE_URL}/store/${storeId}/attendants/${token}`, {
+            params: { idToken: userToken },
+        })
         return
     }
 

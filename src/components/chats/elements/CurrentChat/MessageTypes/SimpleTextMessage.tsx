@@ -8,5 +8,9 @@ export default function SimpleTextMessage({
 }) {
     if (message.type !== 'text') return
     const { content } = message
-    return <p>{formatWhatsAppText(content.text)}</p>
+    return (
+        <div className='break-words whitespace-normal'>
+            {formatWhatsAppText(content.text)}
+        </div>
+    )
 }

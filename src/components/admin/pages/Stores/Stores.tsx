@@ -32,7 +32,7 @@ export default function Stores() {
                 setOpen={setOpen}
             />
             <div className='mb-4' />
-            {stores.length ? (
+            {stores?.length ? (
                 <Accordion
                     className='flex flex-col gap-3'
                     type='multiple'

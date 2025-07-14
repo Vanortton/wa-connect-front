@@ -15,6 +15,7 @@ type ChatDataFields =
     | 'attendingBy'
     | 'lastMessage'
     | 'isGroup'
+    | 'infosLoaded'
 
 type FieldValueMap = {
     name: string
@@ -23,6 +24,7 @@ type FieldValueMap = {
     attendingBy: string | null
     lastMessage: Message
     isGroup: boolean
+    infosLoaded: boolean
 }
 
 export type { ChatDataFields, Connection, FieldValueMap, Status }

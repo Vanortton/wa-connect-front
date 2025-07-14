@@ -60,6 +60,12 @@ type Chat = {
     lastReadTimestamp?: number
     lastMessage: Message
     unreadMessages: number
+    infosLoaded: boolean
+}
+
+type QuickMessage = {
+    shortcut: string
+    text: string
 }
 
 export type {
@@ -68,5 +74,6 @@ export type {
     Message,
     MessageContent,
     MessageType,
+    QuickMessage,
     SenderInfo,
 }
