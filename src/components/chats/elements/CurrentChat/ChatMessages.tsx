@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 import { ChatsContext } from '@/contexts/ChatsContext'
 import { useChats } from '@/hooks/use-chats'
 import { cn } from '@/lib/utils'
-import { ArrowDown, Loader2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Loader2, Loader2Icon } from 'lucide-react'
 import { useContext, useEffect, useRef, useState } from 'react'
 import MessageItem from './MessageItem'
 
@@ -14,13 +14,13 @@ export default function ChatMessages() {
         currentChat,
         replyMessage,
         connection,
+        loadingMsgs,
     } = useContext(ChatsContext)
     const { fetchMessages } = useChats()
     const chat = currentChat ? chats[currentChat] : null
     const containerRef = useRef<HTMLDivElement | null>(null)
     const [inBottom, setInBottom] = useState<boolean>(true)
-    const [inTop, setInTop] = useState<boolean>(false)
-    const [loadingMessages, setLoadingMessages] = useState<boolean>(false)
+    const [loadingMore, setLoadingMore] = useState<boolean>(false)
     const [page, setPage] = useState<number>(2)
     const [finishedLoad, setFinishedLoad] = useState<boolean>(false)
 
@@ -35,10 +35,7 @@ export default function ChatMessages() {
 
         const handleScroll = () => {
             const inBottom = div.scrollTop === 0
-            const inTop =
-                div.scrollHeight + div.scrollTop - div.clientHeight <= 10
             setInBottom(inBottom)
-            setInTop(inTop)
         }
 
         div.addEventListener('scroll', handleScroll)
@@ -54,30 +51,34 @@ export default function ChatMessages() {
         if (nearBottom) scrollBottom()
     }, [currentChatMsgs])
 
-    useEffect(() => {
-        if (!inTop || !currentChat || finishedLoad || loadingMessages) return
-        setLoadingMessages(true)
+    const loadMore = () => {
+        if (!currentChat) return
+        setLoadingMore(true)
         const lastDoc = currentChatMsgs[currentChatMsgs.length - 1]
-        console.log(lastDoc.id)
         fetchMessages({ page, connection, chatId: currentChat, lastDoc }).then(
             (docs) => {
-                setLoadingMessages(false)
+                setLoadingMore(false)
                 if (!docs) return setFinishedLoad(true)
                 setCurrentChatMsgs((prev) => [...prev, ...docs])
                 setPage((prev) => prev + 1)
             }
         )
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [inTop])
+    }
 
     useEffect(() => {
         setPage(2)
         setFinishedLoad(false)
-        setInTop(false)
         setInBottom(true)
-        setLoadingMessages(false)
+        setLoadingMore(false)
     }, [currentChat])
 
+    if (loadingMsgs)
+        return (
+            <div className='flex-1 flex flex-col gap-2 items-center justify-center'>
+                <Loader2Icon className='animate-spin' />
+                Carregando mensagens
+            </div>
+        )
     return (
         <div
             className='flex-1 flex flex-col-reverse overflow-y-auto scroll-smooth scrollbar-transparent p-5 min-h-0 gap-3'
@@ -95,7 +96,17 @@ export default function ChatMessages() {
                     />
                 )
             })}
-            {loadingMessages && (
+            {!loadingMore && (
+                <div className='flex justify-center'>
+                    <Button
+                        variant='secondary'
+                        onClick={loadMore}
+                    >
+                        <ArrowUp /> Carregar mais
+                    </Button>
+                </div>
+            )}
+            {loadingMore && (
                 <div className='flex justify-center'>
                     <div className='bg-background dark:bg-muted text-primary p-1 rounded-full shadow-md'>
                         <Loader2 className='animate-spin' />

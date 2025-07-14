@@ -8,7 +8,14 @@ import type {
 } from '@/types/ChatsContextTypes'
 import type { Chat, Message, QuickMessage } from '@/types/ChatsTypes'
 import type { Attendant } from '@/types/StoreTypes'
-import { collection, onSnapshot, type DocumentData } from 'firebase/firestore'
+import {
+    collection,
+    limit,
+    onSnapshot,
+    orderBy,
+    query,
+    type DocumentData,
+} from 'firebase/firestore'
 import {
     createContext,
     useEffect,
@@ -40,6 +47,7 @@ type Context = {
     replyMessage: Message | null
     setReplyMessage: Dispatch<SetStateAction<Message | null>>
     quickMessages: QuickMessage[]
+    loadingMsgs: boolean
 }
 
 const ChatsContext = createContext<Context>({} as Context)
@@ -53,6 +61,7 @@ function ChatsProvider({ children }: { children: ReactNode }) {
     const [currentChatMsgs, setCurrentChatMsgs] = useState<DocumentData[]>([])
     const [replyMessage, setReplyMessage] = useState<Message | null>(null)
     const [quickMessages, setQuickMessages] = useState<QuickMessage[]>([])
+    const [loadingMsgs, setLoadingMsgs] = useState<boolean>(false)
     const currentChatRef = useRef<string | null>(null)
     const socketRef = useRef<Socket | null>(null)
     const attendantRef = useRef<Attendant | null>(null)
@@ -97,35 +106,38 @@ function ChatsProvider({ children }: { children: ReactNode }) {
         const { attendant, store } = connection
         const path = `users/${attendant.user}/stores/${store.id}/sync`
 
-        const unsubscribeChats = onSnapshot(
+        const q = query(
             collection(db, path),
-            (snapshot) => {
-                if (snapshot.empty) return
-
-                setChats((prevChats) => {
-                    const updatedChats: Record<string, Chat> = { ...prevChats }
-
-                    snapshot.docs.forEach((doc) => {
-                        const chatId = doc.id
-                        const chat = doc.data() as Chat
-
-                        updatedChats[chatId] = {
-                            ...prevChats[chatId],
-                            ...chat,
-                            id: chatId,
-                        }
-
-                        const alreadyHasInfo = prevChats[chatId]?.infosLoaded
-                        if (!alreadyHasInfo && socketRef.current)
-                            socketRef.current.emit('get-chat-info', {
-                                jid: chatId,
-                            })
-                    })
-
-                    return updatedChats
-                })
-            }
+            orderBy('lastMessage.timestamp', 'desc'),
+            limit(100)
         )
+
+        const unsubscribeChats = onSnapshot(q, (snapshot) => {
+            if (snapshot.empty) return
+
+            setChats((prevChats) => {
+                const updatedChats: Record<string, Chat> = { ...prevChats }
+
+                snapshot.docs.forEach((doc) => {
+                    const chatId = doc.id
+                    const chat = doc.data() as Chat
+
+                    updatedChats[chatId] = {
+                        ...prevChats[chatId],
+                        ...chat,
+                        id: chatId,
+                    }
+
+                    const alreadyHasInfo = prevChats[chatId]?.infosLoaded
+                    if (!alreadyHasInfo && socketRef.current)
+                        socketRef.current.emit('get-chat-info', {
+                            jid: chatId,
+                        })
+                })
+
+                return updatedChats
+            })
+        })
 
         const messagesPath = `users/${attendant.user}/stores/${store.id}/quick-messages`
 
@@ -149,11 +161,14 @@ function ChatsProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         setReplyMessage(null)
+        setCurrentChatMsgs([])
+        setLoadingMsgs(true)
         if (currentChat) {
             fetchMessages({ page: 1, chatId: currentChat, connection }).then(
                 (docs) => {
                     if (!docs) return
                     setCurrentChatMsgs(docs)
+                    setLoadingMsgs(false)
                 }
             )
             updateLastView({
@@ -188,6 +203,7 @@ function ChatsProvider({ children }: { children: ReactNode }) {
                 replyMessage,
                 setReplyMessage,
                 quickMessages,
+                loadingMsgs,
             }}
         >
             {children}
