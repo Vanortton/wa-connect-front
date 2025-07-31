@@ -1,8 +1,13 @@
-import type { MessageContent } from '@/types/ChatsTypes'
+import { getLastMessageContent } from '@/helpers/chatsList'
+import type { IMessage, IWebMessageInfo } from '@/types/BaileysTypes'
 
-export default function ReplyPreview({ message }: { message: MessageContent }) {
-    const { reply } = message
-
+export default function ReplyPreview({
+    message,
+    id,
+}: {
+    message: IMessage
+    id: string
+}) {
     const highlightMessage = (msgId: string) => {
         const message = document.getElementById(msgId)
         if (!message) return
@@ -19,9 +24,9 @@ export default function ReplyPreview({ message }: { message: MessageContent }) {
     }
 
     const scrollToMsg = () => {
-        if (!reply?.id) return
+        if (!id) return
         const container = document.getElementById('msgs-container')
-        const message = document.getElementById(reply.id)
+        const message = document.getElementById(id)
         if (container && message) {
             const messageOffsetTop = message.offsetTop
             const containerHeight = container.clientHeight
@@ -34,23 +39,16 @@ export default function ReplyPreview({ message }: { message: MessageContent }) {
                 behavior: 'smooth',
             })
 
-            highlightMessage(reply.id)
+            highlightMessage(id)
         }
     }
 
-    if (!reply?.type) return ''
     return (
         <div
-            className='bg-muted py-1 px-2 rounded-md my-1 border-l-3 border-emerald-500 shadow-sm cursor-pointer'
+            className='bg-muted py-1 px-2 rounded-sm my-1 border-l-6 border-emerald-500 shadow-sm cursor-pointer break-all'
             onClick={scrollToMsg}
         >
-            {getMessageContent(reply)}
+            {getLastMessageContent({ message } as IWebMessageInfo)}
         </div>
     )
-}
-
-function getMessageContent(message: MessageContent) {
-    const { type, content } = message
-    if (type === 'text') return content.text
-    else if (type === 'extendedText') return content.text
 }

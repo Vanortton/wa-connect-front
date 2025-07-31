@@ -12,6 +12,7 @@ import { ChatsContext } from '@/contexts/ChatsContext'
 import { useChats } from '@/hooks/use-chats'
 import { cn } from '@/lib/utils'
 import type { Chat } from '@/types/ChatsTypes'
+import { useChatsStore } from '@/zustand/ChatsStore'
 import {
     ChevronDown,
     EllipsisVertical,
@@ -19,6 +20,7 @@ import {
     SquareMousePointer,
     User,
     Users,
+    X,
 } from 'lucide-react'
 import { useContext } from 'react'
 
@@ -30,7 +32,7 @@ type ActionBtnParamsType = {
 }
 
 export default function Header({ chat }: ChatOnlyParam) {
-    const { setCurrentChat } = useContext(ChatsContext)
+    const { setCurrentChat } = useChatsStore.getState()
     const { getFallbackName } = useChats()
     const displayName = chat.name || getFallbackName(chat.id)
     const actionBtn: ActionBtnParamsType = {
@@ -44,7 +46,7 @@ export default function Header({ chat }: ChatOnlyParam) {
             <div className='flex items-center gap-2'>
                 <Avatar className='min-w-[40px] h-[40px]'>
                     <AvatarImage
-                        src={chat.photo || ''}
+                        src={chat.photo as string}
                         alt={`Avatar de ${displayName}`}
                     />
                     <AvatarFallback className='bg-gray-400 dark:bg-gray-600 text-white'>
@@ -74,7 +76,7 @@ export default function Header({ chat }: ChatOnlyParam) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                         <DropdownMenuItem onClick={() => setCurrentChat(null)}>
-                            Fechar conversa
+                            <X /> Fechar conversa
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

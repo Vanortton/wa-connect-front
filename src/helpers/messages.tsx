@@ -1,216 +1,59 @@
-import type { MessageContent } from '@/types/ChatsTypes'
-import React from 'react'
+import AudioMessage from '@/components/chats/elements/CurrentChat/MessageTypes/AudioMessage'
+import ContactMessage from '@/components/chats/elements/CurrentChat/MessageTypes/ContactMessage'
+import DeletedMessage from '@/components/chats/elements/CurrentChat/MessageTypes/DeletedMessage'
+import DocumentMessage from '@/components/chats/elements/CurrentChat/MessageTypes/DocumentMessage'
+import ExtendedMessage from '@/components/chats/elements/CurrentChat/MessageTypes/ExtendedMessage'
+import ImageMessage from '@/components/chats/elements/CurrentChat/MessageTypes/ImageMessage'
+import LocationMessage from '@/components/chats/elements/CurrentChat/MessageTypes/LocationMessage'
+import SimpleTextMessage from '@/components/chats/elements/CurrentChat/MessageTypes/SimpleTextMessage'
+import StickerMessage from '@/components/chats/elements/CurrentChat/MessageTypes/StikerMessage'
+import VideoMessage from '@/components/chats/elements/CurrentChat/MessageTypes/VideoMessage'
+import type { IMessage, IWebMessageInfo } from '@/types/BaileysTypes'
 
-function formatWhatsAppText(text: string): React.ReactNode {
-    const lines = text.split('\n')
-    const elements: React.ReactNode[] = []
+function getMessageContent(message: IWebMessageInfo) {
+    const type = messageType(message.message)
 
-    let buffer: string[] = []
-    let isInCodeBlock = false
+    if (message.deleted) return <DeletedMessage />
+    if (type === 'text') return <SimpleTextMessage message={message} />
+    if (type === 'extendedText') return <ExtendedMessage message={message} />
+    if (type === 'image') return <ImageMessage message={message} />
+    if (type === 'video') return <VideoMessage message={message} />
+    else if (type === 'audio') return <AudioMessage message={message} />
+    if (type === 'sticker') return <StickerMessage message={message} />
+    else if (type === 'document') return <DocumentMessage message={message} />
+    if (type === 'contact') return <ContactMessage message={message} />
+    if (type === 'location') return <LocationMessage message={message} />
 
-    const flushParagraph = () => {
-        if (buffer.length === 0) return
-        const paragraph = buffer.join('\n')
-        elements.push(
-            <React.Fragment key={elements.length}>
-                {processInline(paragraph).map((part, i) => (
-                    <React.Fragment key={i}>{part}</React.Fragment>
-                ))}
-            </React.Fragment>
-        )
-        buffer = []
-    }
-
-    const processInline = (text: string): React.ReactNode[] => {
-        const parts: React.ReactNode[] = []
-
-        const regex =
-            /(`[^`\n]+?`)|(\*[^*\n]+?\*)|(_[^_\n]+?_)|(~[^~\n]+?~)|(\bhttps?:\/\/[^\s<]+|\bwww\.[^\s<]+)/g
-        let lastIndex = 0
-        let match
-        let key = 0
-
-        while ((match = regex.exec(text)) !== null) {
-            if (match.index > lastIndex) {
-                const raw = text.slice(lastIndex, match.index)
-                parts.push(
-                    ...raw
-                        .split('\n')
-                        .flatMap((t, i, arr) =>
-                            i < arr.length - 1 ? [t, <br key={key++} />] : [t]
-                        )
-                )
-            }
-
-            const [full] = match
-            if (match[1])
-                parts.push(<code key={key++}>{full.slice(1, -1)}</code>)
-            else if (match[2])
-                parts.push(<b key={key++}>{full.slice(1, -1)}</b>)
-            else if (match[3])
-                parts.push(<em key={key++}>{full.slice(1, -1)}</em>)
-            else if (match[4])
-                parts.push(<s key={key++}>{full.slice(1, -1)}</s>)
-            else if (match[5]) {
-                const href = full.startsWith('http') ? full : 'http://' + full
-                parts.push(
-                    <a
-                        key={key++}
-                        href={href}
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='text-blue-600 dark:text-blue-500 underline'
-                    >
-                        {full}
-                    </a>
-                )
-            }
-
-            lastIndex = regex.lastIndex
-        }
-
-        if (lastIndex < text.length) {
-            const rest = text.slice(lastIndex)
-            parts.push(
-                ...rest
-                    .split('\n')
-                    .flatMap((t, i, arr) =>
-                        i < arr.length - 1 ? [t, <br key={key++} />] : [t]
-                    )
-            )
-        }
-
-        return parts
-    }
-
-    let currentList: { items: string[]; ordered: boolean } | null = null
-
-    const flushList = () => {
-        if (!currentList) return
-        const Tag = currentList.ordered ? 'ol' : 'ul'
-        elements.push(
-            <Tag key={elements.length}>
-                {currentList.items.map((item, i) => (
-                    <li key={i}>{processInline(item)}</li>
-                ))}
-            </Tag>
-        )
-        currentList = null
-    }
-
-    for (const line of lines) {
-        const trimmed = line.trim()
-
-        if (trimmed.startsWith('```')) {
-            if (isInCodeBlock) {
-                elements.push(
-                    <pre key={elements.length}>
-                        <code>{buffer.join('\n')}</code>
-                    </pre>
-                )
-                buffer = []
-                isInCodeBlock = false
-            } else {
-                flushParagraph()
-                flushList()
-                isInCodeBlock = true
-            }
-            continue
-        }
-
-        if (isInCodeBlock) {
-            buffer.push(line)
-            continue
-        }
-
-        const quoteMatch = line.match(/^>\s+(.+)/)
-        if (quoteMatch) {
-            flushParagraph()
-            flushList()
-            elements.push(
-                <blockquote key={elements.length}>
-                    {processInline(quoteMatch[1])}
-                </blockquote>
-            )
-            continue
-        }
-
-        const orderedMatch = line.match(/^(\d+)\.\s+(.+)/)
-        if (orderedMatch) {
-            flushParagraph()
-            if (!currentList || !currentList.ordered) {
-                flushList()
-                currentList = { items: [], ordered: true }
-            }
-            currentList.items.push(orderedMatch[2])
-            continue
-        }
-
-        const unorderedMatch = line.match(/^[-*]\s+(.+)/)
-        if (unorderedMatch) {
-            flushParagraph()
-            if (!currentList || currentList.ordered) {
-                flushList()
-                currentList = { items: [], ordered: false }
-            }
-            currentList.items.push(unorderedMatch[1])
-            continue
-        }
-
-        if (trimmed === '') {
-            flushParagraph()
-            flushList()
-            continue
-        }
-
-        buffer.push(line)
-    }
-
-    flushParagraph()
-    flushList()
-    if (isInCodeBlock && buffer.length > 0) {
-        elements.push(
-            <pre key={elements.length}>
-                <code>{buffer.join('\n')}</code>
-            </pre>
-        )
-    }
-
-    return <>{elements}</>
+    return (
+        <p className='italic text-muted-foreground'>
+            Tipo de mensagem ({type}) ainda em implementação
+        </p>
+    )
 }
 
-function removeWhatsAppFormatting(text: string): string {
-    // Remove blocos de código ```texto```
-    text = text.replace(/```([\s\S]*?)```/g, (_, p1) => p1.trim())
-
-    // Remove código inline `texto`
-    text = text.replace(/`([^`\n]+?)`/g, (_, p1) => p1)
-
-    // Remove itálico _texto_
-    text = text.replace(/_(.+?)_/g, (_, p1) => p1)
-
-    // Remove negrito *texto*
-    text = text.replace(/\*(.+?)\*/g, (_, p1) => p1)
-
-    // Remove rasurado ~texto~
-    text = text.replace(/~(.+?)~/g, (_, p1) => p1)
-
-    // Remove citação > texto (mas mantém o texto)
-    text = text.replace(/^> (.+)$/gm, (_, p1) => p1)
-
-    // Remove prefixos de lista numerada (1. texto)
-    text = text.replace(/^\d+\.\s+/gm, '')
-
-    // Remove prefixos de lista com marcador (* texto ou - texto)
-    text = text.replace(/^(\*|-)\s+/gm, '')
-
-    return text
+function messageType(message: IMessage) {
+    if (message?.conversation != null) return 'text'
+    if (message?.extendedTextMessage != null) return 'extendedText'
+    if (message?.imageMessage != null) return 'image'
+    if (message?.videoMessage != null) return 'video'
+    if (message?.audioMessage != null) return 'audio'
+    if (message?.documentMessage != null) return 'document'
+    if (message?.locationMessage != null) return 'location'
+    if (message?.stickerMessage != null) return 'sticker'
+    if (message?.contactMessage != null) return 'contact'
+    if (message?.reactionMessage != null) return 'reaction'
+    if (message?.protocolMessage != null) return 'update'
+    return 'unknown'
 }
 
-function getBasicMessageContent(message: MessageContent) {
-    const { type, content } = message
-    if (type === 'text') return content.text
-    else if (type === 'extendedText') return content.text
+function decodeWaveform(base64?: string): number[] | null {
+    if (!base64) return null
+    const binaryString = atob(base64)
+    const bytes = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+    }
+    return Array.from(bytes)
 }
 
-export { formatWhatsAppText, getBasicMessageContent, removeWhatsAppFormatting }
+export { decodeWaveform, getMessageContent, messageType }

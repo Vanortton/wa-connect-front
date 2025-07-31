@@ -1,30 +1,32 @@
-import * as React from "react"
-import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
-import { CheckIcon } from "lucide-react"
+import { cn } from '@/lib/utils'
+import { Check } from 'lucide-react'
+import * as React from 'react'
 
-import { cn } from "@/lib/utils"
+interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
+    className?: string
+}
 
-function Checkbox({
-  className,
-  ...props
-}: React.ComponentProps<typeof CheckboxPrimitive.Root>) {
-  return (
-    <CheckboxPrimitive.Root
-      data-slot="checkbox"
-      className={cn(
-        "peer border-input dark:bg-input/30 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:data-[state=checked]:bg-primary data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
-        className
-      )}
-      {...props}
-    >
-      <CheckboxPrimitive.Indicator
-        data-slot="checkbox-indicator"
-        className="flex items-center justify-center text-current transition-none"
-      >
-        <CheckIcon className="size-3.5" />
-      </CheckboxPrimitive.Indicator>
-    </CheckboxPrimitive.Root>
-  )
+function Checkbox({ className, ...props }: CheckboxProps) {
+    return (
+        <label
+            className={cn(
+                'inline-flex items-center justify-center size-4 rounded border has-checked:border-none bg-background transition-colors cursor-pointer relative rounded-sm',
+                className
+            )}
+        >
+            <input
+                type='checkbox'
+                className='sr-only peer'
+                {...props}
+            />
+            <span className='absolute border-input peer-checked:border-none rounded-sm inset-0 flex items-center justify-center pointer-events-none peer-checked:bg-primary peer-checked:opacity-100 opacity-0 transition-opacity'>
+                <Check
+                    className='w-3 h-3 text-white'
+                    strokeWidth={3}
+                />
+            </span>
+        </label>
+    )
 }
 
 export { Checkbox }

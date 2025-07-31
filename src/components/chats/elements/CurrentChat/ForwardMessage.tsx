@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { ChatsContext } from '@/contexts/ChatsContext'
 import { useChats } from '@/hooks/use-chats'
+import { useChatsStore } from '@/zustand/ChatsStore'
 import { User } from 'lucide-react'
 import { useContext, useRef, useState, type ReactNode } from 'react'
 
@@ -23,8 +24,10 @@ export default function ForwardMessage({
     children,
     msgId,
 }: ForwardMessageParams) {
-    const { chats, socketRef, currentChat } = useContext(ChatsContext)
+    const { socketRef } = useContext(ChatsContext)
+    const currentChat = useChatsStore((s) => s.currentChat)
     const { getFallbackName } = useChats()
+    const { chats } = useChatsStore.getState()
     const [selected, setSelected] = useState<Record<string, boolean>>({})
     const closeRef = useRef<HTMLButtonElement | null>(null)
 
@@ -75,7 +78,7 @@ export default function ForwardMessage({
                             >
                                 <Checkbox
                                     checked={!!selected[chat.id]}
-                                    onCheckedChange={() => toggleChat(chat.id)}
+                                    onChange={() => toggleChat(chat.id)}
                                 />
                                 <div className='flex items-center gap-2'>
                                     <Avatar>

@@ -1,4 +1,4 @@
-import type { Message } from './ChatsTypes'
+import type { IWebMessageInfo } from './BaileysTypes'
 import type { Attendant, Store } from './StoreTypes'
 
 type Status = 'connected' | 'disconnected' | 'loading'
@@ -22,7 +22,7 @@ type FieldValueMap = {
     photo: string | null
     lastSeen: Date
     attendingBy: string | null
-    lastMessage: Message
+    lastMessage: IWebMessageInfo
     isGroup: boolean
     infosLoaded: boolean
 }

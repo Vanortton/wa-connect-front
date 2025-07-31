@@ -1,16 +1,17 @@
-import { formatWhatsAppText } from '@/helpers/messages'
-import type { MessageContent } from '@/types/ChatsTypes'
+import { formatWhatsAppText } from '@/helpers/format'
+import type { IWebMessageInfo } from '@/types/BaileysTypes'
 
 export default function SimpleTextMessage({
     message,
 }: {
-    message: MessageContent
+    message: IWebMessageInfo
 }) {
-    if (message.type !== 'text') return
-    const { content } = message
+    const { message: content } = message
+    if (!content.conversation) return
+
     return (
-        <div className='break-words whitespace-normal'>
-            {formatWhatsAppText(content.text)}
+        <div className='break-words'>
+            {formatWhatsAppText(content.conversation)}
         </div>
     )
 }

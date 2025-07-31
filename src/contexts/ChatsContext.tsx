@@ -1,21 +1,13 @@
 import { db } from '@/firebase'
 import { useChats } from '@/hooks/use-chats'
-import type {
-    ChatDataFields,
-    Connection,
-    FieldValueMap,
-    Status,
-} from '@/types/ChatsContextTypes'
-import type { Chat, Message, QuickMessage } from '@/types/ChatsTypes'
+import type { IWebMessageInfo } from '@/types/BaileysTypes'
+import type { Connection, Status } from '@/types/ChatsContextTypes'
+import type { QuickMessage } from '@/types/ChatsTypes'
 import type { Attendant } from '@/types/StoreTypes'
-import {
-    collection,
-    limit,
-    onSnapshot,
-    orderBy,
-    query,
-    type DocumentData,
-} from 'firebase/firestore'
+import { useChatsStore } from '@/zustand/ChatsStore'
+import { useLabelsStore } from '@/zustand/LabelsStore'
+import { useChatMessages } from '@/zustand/MessagesStore'
+import { collection, doc, onSnapshot } from 'firebase/firestore'
 import {
     createContext,
     useEffect,
@@ -28,26 +20,15 @@ import {
 import type { Socket } from 'socket.io-client'
 
 type Context = {
-    chats: Record<string, Chat>
-    setChatData: <K extends ChatDataFields>(
-        chatId: string,
-        field: K,
-        value: FieldValueMap[K]
-    ) => void
     connectionStatus: Status
     setConnectionStatus: Dispatch<SetStateAction<Status>>
-    currentChat: string | null
-    setCurrentChat: Dispatch<SetStateAction<string | null>>
     connection: Connection
     setConnection: Dispatch<SetStateAction<Connection>>
     socketRef: React.RefObject<Socket | null>
-    currentChatMsgs: DocumentData[]
-    setCurrentChatMsgs: Dispatch<SetStateAction<DocumentData[]>>
-    onNewMsg: (d: { message: Message }) => Promise<void>
-    replyMessage: Message | null
-    setReplyMessage: Dispatch<SetStateAction<Message | null>>
+    onNewMsg: (d: { message: IWebMessageInfo }) => Promise<void>
+    replyMessage: IWebMessageInfo | null
+    setReplyMessage: Dispatch<SetStateAction<IWebMessageInfo | null>>
     quickMessages: QuickMessage[]
-    loadingMsgs: boolean
 }
 
 const ChatsContext = createContext<Context>({} as Context)
@@ -56,42 +37,33 @@ function ChatsProvider({ children }: { children: ReactNode }) {
     const [connectionStatus, setConnectionStatus] =
         useState<Status>('disconnected')
     const [connection, setConnection] = useState<Connection>({} as Connection)
-    const [chats, setChats] = useState<Record<string, Chat>>({})
-    const [currentChat, setCurrentChat] = useState<string | null>(null)
-    const [currentChatMsgs, setCurrentChatMsgs] = useState<DocumentData[]>([])
-    const [replyMessage, setReplyMessage] = useState<Message | null>(null)
+    const [replyMessage, setReplyMessage] = useState<IWebMessageInfo | null>(
+        null
+    )
+    const { setLabels } = useLabelsStore.getState()
     const [quickMessages, setQuickMessages] = useState<QuickMessage[]>([])
-    const [loadingMsgs, setLoadingMsgs] = useState<boolean>(false)
-    const currentChatRef = useRef<string | null>(null)
     const socketRef = useRef<Socket | null>(null)
     const attendantRef = useRef<Attendant | null>(null)
-    const { fetchMessages, updateLastView } = useChats()
+    const currentChatRef = useRef<string | null>(null)
+    const currentChat = useChatsStore((s) => s.currentChat)
+    const addMessage = useChatMessages((s) => s.addMessage)
+    const { loadChats, updateLastView } = useChats()
 
-    const setChatData = <K extends ChatDataFields>(
-        chatId: string,
-        field: K,
-        value: FieldValueMap[K]
-    ) => {
-        setChats((prev) => ({
-            ...prev,
-            [chatId]: {
-                ...prev[chatId],
-                [field]: value,
-            },
-        }))
-    }
-
-    const onNewMsg = async ({ message }: { message: Message }) => {
-        setChatData(message.chatId, 'lastMessage', message)
-        if (message.chatId === currentChatRef.current) {
+    const onNewMsg = async ({ message }: { message: IWebMessageInfo }) => {
+        console.log(
+            'Nova mensagem',
+            message.key.remoteJid,
+            currentChatRef.current
+        )
+        if (message.key.remoteJid === currentChatRef.current) {
             const fakeDoc = {
-                id: message.id,
+                id: message.key.id,
                 data: () => message,
             }
-            setCurrentChatMsgs((prev) => [fakeDoc, ...prev])
+            addMessage(fakeDoc, true)
             if (attendantRef.current) {
                 await updateLastView({
-                    chatId: message.chatId,
+                    chatId: message.key.remoteJid,
                     attendant: attendantRef.current,
                     socket: socketRef.current,
                 })
@@ -104,42 +76,10 @@ function ChatsProvider({ children }: { children: ReactNode }) {
         if (connectionStatus !== 'connected' || !socketRef.current) return
 
         const { attendant, store } = connection
-        const path = `users/${attendant.user}/stores/${store.id}/sync`
+        loadChats({ connection, socket: socketRef.current })
 
-        const q = query(
-            collection(db, path),
-            orderBy('lastMessage.timestamp', 'desc'),
-            limit(100)
-        )
-
-        const unsubscribeChats = onSnapshot(q, (snapshot) => {
-            if (snapshot.empty) return
-
-            setChats((prevChats) => {
-                const updatedChats: Record<string, Chat> = { ...prevChats }
-
-                snapshot.docs.forEach((doc) => {
-                    const chatId = doc.id
-                    const chat = doc.data() as Chat
-
-                    updatedChats[chatId] = {
-                        ...prevChats[chatId],
-                        ...chat,
-                        id: chatId,
-                    }
-
-                    const alreadyHasInfo = prevChats[chatId]?.infosLoaded
-                    if (!alreadyHasInfo && socketRef.current)
-                        socketRef.current.emit('get-chat-info', {
-                            jid: chatId,
-                        })
-                })
-
-                return updatedChats
-            })
-        })
-
-        const messagesPath = `users/${attendant.user}/stores/${store.id}/quick-messages`
+        const storeDocPath = `users/${attendant.user}/stores/${store.id}`
+        const messagesPath = `${storeDocPath}/quick-messages`
 
         const unsubscribeMessages = onSnapshot(
             collection(db, messagesPath),
@@ -153,57 +93,64 @@ function ChatsProvider({ children }: { children: ReactNode }) {
             }
         )
 
+        const unsubscribeStoreDoc = onSnapshot(
+            doc(db, storeDocPath),
+            (docSnap) => {
+                if (!docSnap.exists()) return
+                const data = docSnap.data()
+                if (data.labels) setLabels(data.labels)
+            }
+        )
+
         return () => {
-            unsubscribeChats()
             unsubscribeMessages()
+            unsubscribeStoreDoc()
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [connection, connectionStatus])
 
-    useEffect(() => {
-        setReplyMessage(null)
-        setCurrentChatMsgs([])
-        setLoadingMsgs(true)
-        if (currentChat) {
-            fetchMessages({ page: 1, chatId: currentChat, connection }).then(
-                (docs) => {
-                    if (!docs) return
-                    setCurrentChatMsgs(docs)
-                    setLoadingMsgs(false)
-                }
-            )
-            updateLastView({
-                chatId: currentChat,
-                attendant: connection.attendant,
-                socket: socketRef.current,
-            })
-        }
-        currentChatRef.current = currentChat
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentChat])
+    // useEffect(() => {
+    //     setReplyMessage(null)
+    //     setCurrentChatMsgs([])
+    //     setLoadingMsgs(true)
+    //     if (currentChat) {
+    //         fetchMessages({ page: 1, chatId: currentChat, connection }).then(
+    //             (docs) => {
+    //                 if (!docs) return
+    //                 setCurrentChatMsgs(docs)
+    //                 setLoadingMsgs(false)
+    //             }
+    //         )
+    //         updateLastView({
+    //             chatId: currentChat,
+    //             attendant: connection.attendant,
+    //             socket: socketRef.current,
+    //         })
+    //     }
+    //     currentChatRef.current = currentChat
+    //     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // }, [currentChat])
 
     useEffect(() => {
         if (connection.attendant) attendantRef.current = connection.attendant
     }, [connection])
 
+    useEffect(() => {
+        currentChatRef.current = currentChat
+    }, [currentChat])
+
     return (
         <ChatsContext.Provider
             value={{
-                chats,
-                setChatData,
                 connectionStatus,
                 setConnectionStatus,
-                currentChat,
-                setCurrentChat,
                 connection,
                 setConnection,
                 socketRef,
-                currentChatMsgs,
-                setCurrentChatMsgs,
                 onNewMsg,
                 replyMessage,
                 setReplyMessage,
                 quickMessages,
-                loadingMsgs,
             }}
         >
             {children}

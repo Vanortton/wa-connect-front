@@ -1,57 +1,81 @@
-import AudioPlayer from '@/components/ui/audio-player'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { ChatsContext } from '@/contexts/ChatsContext'
-import { getBasicMessageContent } from '@/helpers/messages'
+import { Checkbox } from '@/components/ui/checkbox'
+import { getMessageContent, messageType } from '@/helpers/messages'
 import { cn } from '@/lib/utils'
-import type { Message } from '@/types/ChatsTypes'
-import { ChevronDown, Copy, ReplyAll as Forward, Reply } from 'lucide-react'
-import { useContext, type ReactNode } from 'react'
-import { toast } from 'sonner'
-import ForwardMessage from './ForwardMessage'
-import DocumentMessage from './MessageTypes/DocumentMessage'
-import ExtendedMessage from './MessageTypes/ExtendedMessage'
-import ImageMessage from './MessageTypes/ImageMessage'
+import type { IWebMessageInfo } from '@/types/BaileysTypes'
+import type { DocumentData } from 'firebase/firestore'
+import React, { type ReactNode } from 'react'
+import MessageActions from './MessageActions'
 import ReplyPreview from './MessageTypes/ReplyPreview'
-import SimpleTextMessage from './MessageTypes/SimpleTextMessage'
-import StickerMessage from './MessageTypes/StikerMessage'
-import VideoMessage from './MessageTypes/VideoMessage'
 
-type MessageItemParams = { message: Message; isGroup: boolean }
+type MessageItemParams = { message: DocumentData; isGroup: boolean }
 type MessageWrapperParams = { children: ReactNode; fromMe: boolean }
 
-export default function MessageItem({ message, isGroup }: MessageItemParams) {
-    const sendTime = new Date(message.timestamp * 1000).toLocaleTimeString()
+function MessageItem({ message, isGroup }: MessageItemParams) {
+    const msg = message.data() as IWebMessageInfo
+    const type = messageType(msg.message)
+    const msgTime = msg.messageTimestamp
+
+    const sendTime = new Date(msgTime * 1000).toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+    })
+
+    const messageContent =
+        msg?.message?.[`${type}Message` as keyof IWebMessageInfo['message']]
+    const repliedMsg =
+        typeof messageContent === 'string'
+            ? null
+            : messageContent?.contextInfo?.quotedMessage
+    const repliedId =
+        typeof messageContent === 'string'
+            ? null
+            : messageContent?.contextInfo?.stanzaId
+
+    console.log('ATUALIZANDO MENSAGEM', msg)
 
     return (
         <div
-            className={cn(
-                'w-full flex group',
-                message.sender.fromMe ? 'justify-end' : 'justify-start'
-            )}
-            id={message.id}
+            className='w-full relative group'
+            id={msg.key.id}
         >
-            <MessageWrapper fromMe={message.sender.fromMe || false}>
-                <MessageActions message={message} />
-                {isGroup && (
-                    <div className='text-xs text-muted-foreground'>
-                        ~ {message.sender.pushName}
-                    </div>
-                )}
-                {message.content.reply && (
-                    <ReplyPreview message={message.content} />
-                )}
-                {getMessageContent(message.content)}
-                <div className='flex justify-end text-xs text-muted-foreground'>
-                    {sendTime}
+            <label
+                className='w-full flex items-center gap-8 px-5 py-1 w-full h-full highlight block message-highlight'
+                htmlFor={`selector-${msg.key.id}`}
+            >
+                <Checkbox
+                    className='z-40 size-5 bg-background border-foreground/30 message-checkbox'
+                    id={`selector-${msg.key.id}`}
+                    name='selected-message'
+                    value={msg.key.id}
+                />
+
+                <div
+                    className={cn(
+                        'w-full flex group items-center gap-3 justify-end',
+                        !msg.key.fromMe && 'justify-end flex-row-reverse'
+                    )}
+                >
+                    <MessageActions message={msg} />
+                    <MessageWrapper fromMe={msg.key.fromMe || false}>
+                        {isGroup && (
+                            <div className='text-xs text-muted-foreground'>
+                                ~ {msg.pushName}
+                            </div>
+                        )}
+                        {repliedMsg && (
+                            <ReplyPreview
+                                message={repliedMsg}
+                                id={repliedId || ''}
+                            />
+                        )}
+                        {getMessageContent(msg)}
+                        <div className='flex justify-end text-xs text-muted-foreground'>
+                            {sendTime}
+                        </div>
+                    </MessageWrapper>
                 </div>
-            </MessageWrapper>
+            </label>
         </div>
     )
 }
@@ -76,82 +100,4 @@ function MessageWrapper({ children, fromMe }: MessageWrapperParams) {
     )
 }
 
-function MessageActions({ message }: { message: Message }) {
-    const { setReplyMessage } = useContext(ChatsContext)
-    const { fromMe } = message.sender
-
-    const replyMessage = () => setReplyMessage(message)
-    const copyMessage = async () => {
-        try {
-            const content = getBasicMessageContent(message.content)
-            if (!content) return
-            const messageTime = new Date(
-                message.timestamp * 1000
-            ).toLocaleTimeString()
-            await navigator.clipboard.writeText(
-                `[${message.sender.pushName} - ${messageTime}]: ${content}`
-            )
-            toast.success('Mensagem copiada')
-        } catch (error) {
-            console.log(error)
-            toast.error('Não foi possível copiar mensagem')
-        }
-    }
-
-    return (
-        <div>
-            <ForwardMessage msgId={message.id}>
-                <button
-                    id={`forward-${message.id}`}
-                    className='hidden'
-                />
-            </ForwardMessage>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        className='h-auto p-0 has-[>svg]:px-0 rounded-sm absolute top-0 right-1 invisible group-hover:visible'
-                        variant='ghost'
-                    >
-                        <ChevronDown />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                    side={fromMe ? 'left' : 'right'}
-                    sideOffset={10}
-                    className='border-0 rounded-lg'
-                >
-                    <DropdownMenuItem onClick={replyMessage}>
-                        <Reply /> Responder
-                    </DropdownMenuItem>
-                    <label htmlFor={`forward-${message.id}`}>
-                        <DropdownMenuItem>
-                            <Forward className='icon-h-flip' />
-                            Encaminhar mensagem
-                        </DropdownMenuItem>
-                    </label>
-                    <DropdownMenuItem onClick={copyMessage}>
-                        <Copy /> Copiar
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
-    )
-}
-
-function getMessageContent(message: Message['content']) {
-    const { type, content } = message
-    if (type === 'text') return <SimpleTextMessage message={message} />
-    else if (type === 'extendedText')
-        return <ExtendedMessage message={message} />
-    else if (type === 'image') return <ImageMessage message={message} />
-    else if (type === 'video') return <VideoMessage message={message} />
-    else if (type === 'audio') return <AudioPlayer src={content.url} />
-    else if (type === 'sticker') return <StickerMessage message={message} />
-    else if (type === 'document') return <DocumentMessage message={message} />
-    else
-        return (
-            <p className='italic text-muted-foreground'>
-                Tipo de mensagem ({type}) ainda em implementação
-            </p>
-        )
-}
+export default React.memo(MessageItem)

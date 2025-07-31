@@ -5,7 +5,6 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { ChatsContext } from '@/contexts/ChatsContext'
-import { getBasicMessageContent } from '@/helpers/messages'
 import { cn } from '@/lib/utils'
 import type { FileType } from '@/types/SendMessageTypes'
 
@@ -26,25 +25,16 @@ import {
 } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
 
-import {
-    FileText,
-    Headphones,
-    Images,
-    Plus,
-    SendHorizonal,
-    X,
-} from 'lucide-react'
+import { getLastMessageContent } from '@/helpers/chatsList'
+import { useChatsStore } from '@/zustand/ChatsStore'
+import { FileText, Plus, SendHorizonal, X } from 'lucide-react'
 
 const messageSchema = z.object({ content: z.string() })
 
 export default function SendMessageForm() {
-    const {
-        socketRef,
-        currentChat,
-        replyMessage,
-        quickMessages,
-        setReplyMessage,
-    } = useContext(ChatsContext)
+    const { socketRef, replyMessage, quickMessages, setReplyMessage } =
+        useContext(ChatsContext)
+    const currentChat = useChatsStore((s) => s.currentChat)
     const form = useForm<z.infer<typeof messageSchema>>({
         resolver: zodResolver(messageSchema),
         defaultValues: { content: '' },
@@ -159,14 +149,14 @@ export default function SendMessageForm() {
                 jid: currentChat,
                 type,
                 content,
-                reply: replyMessage?.id,
+                reply: replyMessage?.key.id,
             })
         else if (type === 'file') {
             socketRef.current.emit('send-message', {
                 jid: currentChat,
                 type,
                 content,
-                reply: replyMessage?.id,
+                reply: replyMessage?.key.id,
             })
         }
         setReplyMessage(null)
@@ -274,9 +264,9 @@ function ReplyMessage() {
             <CardContent className='px-4 py-2 flex justify-between items-center'>
                 <div>
                     <div className='text-xs text-muted-foreground'>
-                        {replyMessage.sender.pushName}
+                        {replyMessage.pushName}
                     </div>
-                    <div>{getBasicMessageContent(replyMessage.content)}</div>
+                    <div>{getLastMessageContent(replyMessage)}</div>
                 </div>
                 <Button
                     className='rounded-full h-auto p-0 has-[>svg]:px-0 size-5'
@@ -299,13 +289,13 @@ function SendFile({ onSendFile }: { onSendFile: (file: FileType) => void }) {
 
     const items = [
         { icon: FileText, color: 'purple', label: 'Documento' },
-        {
-            icon: Images,
-            color: 'blue',
-            label: 'Fotos e vídeos',
-            disabled: true,
-        },
-        { icon: Headphones, color: 'orange', label: 'Audio', disabled: true },
+        // {
+        //     icon: Images,
+        //     color: 'blue',
+        //     label: 'Fotos e vídeos',
+        //     disabled: true,
+        // },
+        // { icon: Headphones, color: 'orange', label: 'Audio', disabled: true },
     ]
 
     const handleFileClick = (label: string) => {
@@ -361,7 +351,7 @@ function SendFile({ onSendFile }: { onSendFile: (file: FileType) => void }) {
                             key={item.label}
                             className='text-md'
                             onClick={() => handleFileClick(item.label)}
-                            disabled={item.disabled}
+                            // disabled={item.disabled}
                         >
                             <item.icon
                                 className={cn(

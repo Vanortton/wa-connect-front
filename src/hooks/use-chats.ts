@@ -1,7 +1,9 @@
 import { ChatsContext } from '@/contexts/ChatsContext'
 import { db } from '@/firebase'
 import type { Connection, Status } from '@/types/ChatsContextTypes'
+import type { Chat } from '@/types/ChatsTypes'
 import type { Attendant } from '@/types/StoreTypes'
+import { useChatsStore } from '@/zustand/ChatsStore'
 import { formatToPhone } from 'brazilian-values'
 import {
     collection,
@@ -9,6 +11,7 @@ import {
     type DocumentData,
     getDocs,
     limit,
+    onSnapshot,
     orderBy,
     query,
     startAfter,
@@ -30,6 +33,11 @@ type ListenersParams = {
     socket: Socket
 }
 
+type LoadChatsParams = {
+    connection: Connection
+    socket: Socket
+}
+
 type FetchMessagesParams = {
     page: number
     chatId: string
@@ -48,18 +56,14 @@ type MarkAsAttendingParams = UpdateLastViewParams & {
 }
 
 export const useChats = () => {
-    const { setChatData, setConnectionStatus, onNewMsg } =
-        useContext(ChatsContext)
+    const { setConnectionStatus, onNewMsg } = useContext(ChatsContext)
+    const { setChat } = useChatsStore.getState()
 
     const onConnectionStatusChange = ({ status }: { status: Status }) =>
         setConnectionStatus(status)
 
-    const updateChatInfo = ({ jid, name, photo, isGroup }: ChatInfo) => {
-        setChatData(jid, 'name', name)
-        setChatData(jid, 'photo', photo)
-        setChatData(jid, 'isGroup', isGroup)
-        setChatData(jid, 'infosLoaded', true)
-    }
+    const updateChatInfo = ({ jid, name, photo, isGroup }: ChatInfo) =>
+        setChat(jid, { name, photo, isGroup })
 
     const clearSocketListeners = (socket: Socket) => {
         socket.off('disconnect')
@@ -160,6 +164,37 @@ export const useChats = () => {
         return date.toLocaleDateString('pt-BR')
     }
 
+    const loadChats = async ({ connection, socket }: LoadChatsParams) => {
+        console.log('Função chamada')
+        const { attendant, store } = connection
+        const path = `users/${attendant.user}/stores/${store.id}/sync`
+
+        const q = query(collection(db, path))
+
+        onSnapshot(q, (snapshot) => {
+            if (snapshot.empty) return
+
+            snapshot.docChanges().forEach((change) => {
+                const doc = change.doc
+                const chatId = doc.id
+                const chat = doc.data() as Chat
+
+                console.log(chat)
+
+                const updatedChat = setChat(chatId, {
+                    ...chat,
+                    id: chatId,
+                })
+
+                const hasInfos = updatedChat.photo || updatedChat.name
+                if (socket && !hasInfos)
+                    socket.emit('get-chat-info', {
+                        jid: chatId,
+                    })
+            })
+        })
+    }
+
     const fetchMessages = async ({
         page,
         connection,
@@ -167,18 +202,18 @@ export const useChats = () => {
         lastDoc,
     }: FetchMessagesParams) => {
         const { attendant, store } = connection
-        const path = `users/${attendant.user}/stores/${store.id}/sync/${chatId}/messages`
+        const path = `users/${attendant.user}/stores/${store.id}/sync/${chatId}/proto`
         let dbQuery
         if (page === 1) {
             dbQuery = query(
                 collection(db, path),
-                orderBy('timestamp', 'desc'),
+                orderBy('messageTimestamp', 'desc'),
                 limit(20)
             )
         } else if (lastDoc) {
             dbQuery = query(
                 collection(db, path),
-                orderBy('timestamp', 'desc'),
+                orderBy('messageTimestamp', 'desc'),
                 startAfter(lastDoc),
                 limit(20)
             )
@@ -188,6 +223,11 @@ export const useChats = () => {
 
         if (snapShot.empty) return null
 
+        console.log(
+            snapShot.docs.map((d) => ({
+                messageTimestamp: d.data().messageTimestamp,
+            }))
+        )
         return snapShot.docs
     }
 
@@ -219,7 +259,6 @@ export const useChats = () => {
         )
         await updateDoc(docRef, { lastView: Date.now(), unreadMessages: 0 })
         if (socket) {
-            console.log('Socket encontrado, marcando como lida')
             // socket.emit('mark-as-read', { jid: chatId })
         }
     }
@@ -239,6 +278,7 @@ export const useChats = () => {
         addListeners,
         getFallbackName,
         formatTime,
+        loadChats,
         fetchMessages,
         markAsAttending,
         updateLastView,
