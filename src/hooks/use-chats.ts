@@ -169,7 +169,11 @@ export const useChats = () => {
         const { attendant, store } = connection
         const path = `users/${attendant.user}/stores/${store.id}/sync`
 
-        const q = query(collection(db, path), limit(100))
+        const q = query(
+            collection(db, path),
+            limit(100),
+            orderBy('lastMessage.messageTimestamp', 'desc')
+        )
 
         onSnapshot(q, (snapshot) => {
             if (snapshot.empty) return
