@@ -3,6 +3,7 @@ import { ChatsContext } from '@/contexts/ChatsContext'
 import { formatWhatsAppText } from '@/helpers/format'
 import { mimeTypeToExt } from '@/helpers/messages'
 import useMessages from '@/hooks/use-messages'
+import { cn } from '@/lib/utils'
 import type { IWebMessageInfo } from '@/types/BaileysTypes'
 import { useChatMessages } from '@/zustand/MessagesStore'
 import { Download, Loader2Icon } from 'lucide-react'
@@ -101,7 +102,13 @@ export function RenderImage({ message }: RenderImageParams) {
                             {loading ? (
                                 <Loader2Icon className='animate-spin' />
                             ) : (
-                                <Download size={16} />
+                                <Download
+                                    size={16}
+                                    className={cn(
+                                        downloadUrl &&
+                                            'text-emerald-600 dark:text-emerald-500'
+                                    )}
+                                />
                             )}
                         </Button>
                     </div>

@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { ChatsContext } from '@/contexts/ChatsContext'
 import { formatWhatsAppText } from '@/helpers/format'
 import useMessages from '@/hooks/use-messages'
+import { cn } from '@/lib/utils'
 import type { IWebMessageInfo } from '@/types/BaileysTypes'
 import { useChatMessages } from '@/zustand/MessagesStore'
 import { Loader2Icon, Play } from 'lucide-react'
@@ -103,7 +104,13 @@ export function RenderVideo({ message }: RenderVideoParams) {
                             {loading ? (
                                 <Loader2Icon className='animate-spin' />
                             ) : (
-                                <Play size={16} />
+                                <Play
+                                    size={16}
+                                    className={cn(
+                                        downloadUrl &&
+                                            'text-emerald-600 dark:text-emerald-500'
+                                    )}
+                                />
                             )}
                         </Button>
                     </div>
