@@ -169,7 +169,7 @@ export const useChats = () => {
         const { attendant, store } = connection
         const path = `users/${attendant.user}/stores/${store.id}/sync`
 
-        const q = query(collection(db, path))
+        const q = query(collection(db, path), limit(100))
 
         onSnapshot(q, (snapshot) => {
             if (snapshot.empty) return
