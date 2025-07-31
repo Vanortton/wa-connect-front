@@ -3,7 +3,6 @@ import { ChatsContext } from '@/contexts/ChatsContext'
 import { decodeWaveform } from '@/helpers/messages'
 import useMessages from '@/hooks/use-messages'
 import type { IAudioMessage, IWebMessageInfo } from '@/types/BaileysTypes'
-import { useChatMessages } from '@/zustand/MessagesStore'
 import { Download, Loader2Icon, Pause, Play } from 'lucide-react'
 import { useContext, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -26,7 +25,6 @@ export default function AudioMessage({
     const { retryDownload } = useMessages()
     const { socketRef } = useContext(ChatsContext)
     const { message: content } = message
-    const updateMessage = useChatMessages((s) => s.updateMessage)
     const [loading, setLoading] = useState(false)
     const [isPlaying, setIsPlaying] = useState(false)
     const [progress, setProgress] = useState(0)
@@ -45,12 +43,7 @@ export default function AudioMessage({
             setLoading(true)
             if (!socketRef.current) return
 
-            const updatedMsg = await retryDownload(
-                socketRef.current,
-                message,
-                'audio'
-            )
-            updateMessage(updatedMsg)
+            await retryDownload(socketRef.current, message, 'audio')
         } catch (err) {
             toast.error('Não foi possível baixar o áudio')
             console.error('Erro ao baixar áudio:', err)

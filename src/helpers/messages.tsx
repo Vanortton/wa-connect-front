@@ -56,4 +56,46 @@ function decodeWaveform(base64?: string): number[] | null {
     return Array.from(bytes)
 }
 
-export { decodeWaveform, getMessageContent, messageType }
+function mimeTypeToExt(mime: string) {
+    const map: Record<string, string> = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/gif': 'gif',
+        'image/webp': 'webp',
+        'image/bmp': 'bmp',
+        'image/svg+xml': 'svg',
+
+        'video/mp4': 'mp4',
+        'video/webm': 'webm',
+        'video/ogg': 'ogv',
+
+        'audio/mpeg': 'mp3',
+        'audio/ogg': 'ogg',
+        'audio/wav': 'wav',
+        'audio/webm': 'weba',
+
+        'application/pdf': 'pdf',
+        'application/zip': 'zip',
+        'application/x-rar-compressed': 'rar',
+        'application/vnd.ms-excel': 'xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+            'xlsx',
+        'application/msword': 'doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+            'docx',
+        'application/vnd.ms-powerpoint': 'ppt',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+            'pptx',
+
+        'text/plain': 'txt',
+        'text/html': 'html',
+        'application/json': 'json',
+        'application/javascript': 'js',
+        'text/css': 'css',
+    }
+
+    return map[mime] || ''
+}
+
+export { decodeWaveform, getMessageContent, messageType, mimeTypeToExt }
+

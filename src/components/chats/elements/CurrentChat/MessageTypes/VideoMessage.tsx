@@ -74,11 +74,7 @@ export function RenderVideo({ message }: RenderVideoParams) {
                         },
                     }),
                 })
-            } else {
-                await retryDownload(socketRef.current, message, 'video').then(
-                    (msg) => updateMessage(msg)
-                )
-            }
+            } else await retryDownload(socketRef.current, message, 'video')
 
             setShowPreview(false)
         } catch (err) {

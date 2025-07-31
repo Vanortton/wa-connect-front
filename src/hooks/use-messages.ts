@@ -1,11 +1,13 @@
 import { ChatsContext } from '@/contexts/ChatsContext'
 import { BASE_URL } from '@/globals'
 import type { IWebMessageInfo, MediaMessageTypes } from '@/types/BaileysTypes'
+import { useChatMessages } from '@/zustand/MessagesStore'
 import { useContext } from 'react'
 import type { Socket } from 'socket.io-client'
 
 export default function useMessages() {
     const { connection } = useContext(ChatsContext)
+    const { updateMessage } = useChatMessages.getState()
 
     const retryDownload = async (
         socket: Socket,
@@ -18,7 +20,7 @@ export default function useMessages() {
             type,
         })
 
-        return {
+        const newMessage = {
             id: message.key.id,
             data: () => ({
                 ...message,
@@ -31,6 +33,25 @@ export default function useMessages() {
                 },
             }),
         }
+
+        updateMessage(newMessage)
+
+        return newMessage
+    }
+
+    const downloadMedia = async (downloadUrl: string, fileName: string) => {
+        const res = await fetch(downloadUrl)
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+
+        const a = document.createElement('a')
+        a.href = url
+        a.download = fileName || 'documento'
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+
+        URL.revokeObjectURL(url)
     }
 
     const downloadZipMedia = async (chatId: string, messagesIds: string[]) => {
@@ -43,5 +64,5 @@ export default function useMessages() {
         )
     }
 
-    return { retryDownload, downloadZipMedia }
+    return { retryDownload, downloadZipMedia, downloadMedia }
 }

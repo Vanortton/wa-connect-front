@@ -52,6 +52,9 @@ export default function SelectionActions({
                 return msg.key.id
             })
 
+        if (!mediaCheckedMsgs.length)
+            return toast.error('Baixe os arquivos primeiro para poder baixar')
+
         await downloadZipMedia(currentChat, mediaCheckedMsgs)
         onCancel()
     }

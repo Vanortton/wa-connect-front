@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { ChatsContext } from '@/contexts/ChatsContext'
 import { formatWhatsAppText } from '@/helpers/format'
 import useMessages from '@/hooks/use-messages'
+import { cn } from '@/lib/utils'
 import type { IWebMessageInfo } from '@/types/BaileysTypes'
 import { Download, FileText, Loader2Icon } from 'lucide-react'
 import { useContext, useState } from 'react'
@@ -12,7 +13,7 @@ export default function DocumentMessage({
 }: {
     message: IWebMessageInfo
 }) {
-    const { retryDownload } = useMessages()
+    const { retryDownload, downloadMedia } = useMessages()
     const { message: content } = message
     const { socketRef } = useContext(ChatsContext)
     const [loading, setLoading] = useState(false)
@@ -31,37 +32,24 @@ export default function DocumentMessage({
         setLoading(true)
 
         try {
-            let finalDownloadUrl = downloadUrl
-
-            if (!finalDownloadUrl) {
+            if (!downloadUrl) {
                 const msg = await retryDownload(
                     socketRef.current,
                     message,
                     'document'
                 )
                 const msgData = msg.data()
-                finalDownloadUrl =
+                const finalDownloadUrl =
                     msgData.message.documentMessage?.downloadUrl || ''
 
                 if (!finalDownloadUrl) {
                     toast.error('Não foi possível obter URL de download.')
                     setLoading(false)
-                    return
                 }
+                return
             }
 
-            const res = await fetch(finalDownloadUrl)
-            const blob = await res.blob()
-            const url = URL.createObjectURL(blob)
-
-            const a = document.createElement('a')
-            a.href = url
-            a.download = fileName || 'documento'
-            document.body.appendChild(a)
-            a.click()
-            a.remove()
-
-            URL.revokeObjectURL(url)
+            downloadMedia(downloadUrl, fileName)
         } catch (err) {
             console.error('Erro ao baixar documento:', err)
             toast.error('Falha ao baixar documento.')
@@ -100,7 +88,13 @@ export default function DocumentMessage({
                     {loading ? (
                         <Loader2Icon className='animate-spin' />
                     ) : (
-                        <Download size={16} />
+                        <Download
+                            size={16}
+                            className={cn(
+                                downloadUrl &&
+                                    'text-emerald-600 dark:text-emerald-500'
+                            )}
+                        />
                     )}
                 </Button>
             </div>

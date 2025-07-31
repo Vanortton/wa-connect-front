@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { ChatsContext } from '@/contexts/ChatsContext'
 import { formatWhatsAppText } from '@/helpers/format'
+import { mimeTypeToExt } from '@/helpers/messages'
 import useMessages from '@/hooks/use-messages'
 import type { IWebMessageInfo } from '@/types/BaileysTypes'
 import { useChatMessages } from '@/zustand/MessagesStore'
@@ -40,7 +41,7 @@ export default function ImageMessage({
 }
 
 export function RenderImage({ message }: RenderImageParams) {
-    const { retryDownload } = useMessages()
+    const { retryDownload, downloadMedia } = useMessages()
     const { socketRef } = useContext(ChatsContext)
     const [loading, setLoading] = useState(false)
     const [showPreview, setShowPreview] = useState<boolean>(true)
@@ -71,11 +72,7 @@ export function RenderImage({ message }: RenderImageParams) {
                         },
                     }),
                 })
-            } else {
-                await retryDownload(socketRef.current, message, 'image').then(
-                    (msg) => updateMessage(msg)
-                )
-            }
+            } else await retryDownload(socketRef.current, message, 'image')
 
             setShowPreview(false)
         } catch (err) {
@@ -110,11 +107,32 @@ export function RenderImage({ message }: RenderImageParams) {
                     </div>
                 </>
             ) : (
-                <img
-                    src={downloadUrl}
-                    alt='Preview da imagem'
-                    className='max-w-[240px] max-h-[300px] rounded-md'
-                />
+                <>
+                    <img
+                        src={downloadUrl}
+                        alt='Preview da imagem'
+                        className='max-w-[240px] max-h-[300px] rounded-md'
+                    />
+                    <Button
+                        size='icon'
+                        variant='outline'
+                        className='absolute right-1 top-1 size-6'
+                        type='button'
+                        onClick={() =>
+                            downloadMedia(
+                                downloadUrl,
+                                `wa_image_${Date.now()}.${mimeTypeToExt(
+                                    mimetype
+                                )}`
+                            )
+                        }
+                    >
+                        <Download
+                            className='size-3'
+                            strokeWidth={3}
+                        />
+                    </Button>
+                </>
             )}
         </div>
     )
