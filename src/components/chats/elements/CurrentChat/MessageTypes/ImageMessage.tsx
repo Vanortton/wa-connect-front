@@ -115,8 +115,7 @@ export function RenderImage({ message }: RenderImageParams) {
                     />
                     <Button
                         size='icon'
-                        variant='outline'
-                        className='absolute right-1 top-1 size-6'
+                        className='absolute right-1 top-1 size-6 bg-muted hover:bg-muted/50 text-foreground'
                         type='button'
                         onClick={() =>
                             downloadMedia(
