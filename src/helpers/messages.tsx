@@ -97,5 +97,22 @@ function mimeTypeToExt(mime: string) {
     return map[mime] || ''
 }
 
-export { decodeWaveform, getMessageContent, messageType, mimeTypeToExt }
+function formatBytes(bytes: number): string {
+    const units = ['B', 'KB', 'MB', 'GB', 'TB']
+    let i = 0
 
+    while (bytes >= 1024 && i < units.length - 1) {
+        bytes /= 1024
+        i++
+    }
+
+    return `${bytes?.toFixed(bytes < 1024 ? 0 : 1)} ${units[i]}`
+}
+
+export {
+    decodeWaveform,
+    formatBytes,
+    getMessageContent,
+    messageType,
+    mimeTypeToExt,
+}

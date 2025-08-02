@@ -14,7 +14,7 @@ import { useContext, useEffect, useRef, useState } from 'react'
 import ChatMessages from './ChatMessages'
 import Header from './Header'
 import SelectionActions from './SelectionActions'
-import SendMessageForm from './SendMessage'
+import SendMessage from './SendMessage/SendMessage'
 
 type Modes = 'default' | 'selection'
 
@@ -132,7 +132,7 @@ export default function CurrentChat() {
                         </ContextMenuContent>
                     </ContextMenu>
                     <div className='p-4'>
-                        <SendMessageForm />
+                        <SendMessage />
                     </div>
                 </div>
             </div>

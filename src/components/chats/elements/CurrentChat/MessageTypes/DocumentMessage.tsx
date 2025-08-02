@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { ChatsContext } from '@/contexts/ChatsContext'
 import { formatWhatsAppText } from '@/helpers/format'
+import { formatBytes } from '@/helpers/messages'
 import useMessages from '@/hooks/use-messages'
 import { cn } from '@/lib/utils'
 import type { IWebMessageInfo } from '@/types/BaileysTypes'
@@ -105,16 +106,4 @@ export default function DocumentMessage({
             )}
         </div>
     )
-}
-
-function formatBytes(bytes: number): string {
-    const units = ['B', 'KB', 'MB', 'GB', 'TB']
-    let i = 0
-
-    while (bytes >= 1024 && i < units.length - 1) {
-        bytes /= 1024
-        i++
-    }
-
-    return `${bytes?.toFixed(bytes < 1024 ? 0 : 1)} ${units[i]}`
 }

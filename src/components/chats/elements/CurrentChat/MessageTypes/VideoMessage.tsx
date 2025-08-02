@@ -91,7 +91,10 @@ export function RenderVideo({ message }: RenderVideoParams) {
             {showPreview ? (
                 <>
                     <div
-                        style={{ backgroundImage: `url(${thumbnailSrc})` }}
+                        style={{
+                            backgroundImage: `url(${thumbnailSrc})`,
+                            backgroundColor: '#000000',
+                        }}
                         className='w-[240px] h-[300px] max-w-[240px] max-h-[300px] bg-center bg-cover rounded-md'
                     ></div>
                     <div className='w-[240px] h-[300px] max-w-[240px] max-h-[300px] rounded-md bg-transparent backdrop-blur-sm absolute top-0 left-0 flex items-center justify-center'>

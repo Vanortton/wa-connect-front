@@ -23,4 +23,7 @@ type ForwardMessage = {
 
 type SendMessage = NormalMessage | ForwardMessage
 
-export type { FileType, SendMessage }
+type FilesTypes = 'document' | 'image-video' | 'audio'
+type SelectedFile = { file: File; type: FilesTypes; caption?: string }
+
+export type { FilesTypes, FileType, SelectedFile, SendMessage }

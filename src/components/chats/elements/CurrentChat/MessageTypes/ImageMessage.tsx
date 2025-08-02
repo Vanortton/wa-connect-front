@@ -45,7 +45,6 @@ export function RenderImage({ message }: RenderImageParams) {
     const { retryDownload, downloadMedia } = useMessages()
     const { socketRef } = useContext(ChatsContext)
     const [loading, setLoading] = useState(false)
-    const [showPreview, setShowPreview] = useState<boolean>(true)
     const updateMessage = useChatMessages((s) => s.updateMessage)
 
     const { message: content } = message
@@ -74,8 +73,6 @@ export function RenderImage({ message }: RenderImageParams) {
                     }),
                 })
             } else await retryDownload(socketRef.current, message, 'image')
-
-            setShowPreview(false)
         } catch (err) {
             toast.error('Não foi possível baixar imagem')
             console.error('Erro ao baixar imagem:', err)
@@ -86,7 +83,7 @@ export function RenderImage({ message }: RenderImageParams) {
 
     return (
         <div className='relative'>
-            {showPreview ? (
+            {!downloadUrl ? (
                 <>
                     <div
                         style={{ backgroundImage: `url(${thumbnailSrc})` }}
@@ -118,7 +115,7 @@ export function RenderImage({ message }: RenderImageParams) {
                     <img
                         src={downloadUrl}
                         alt='Preview da imagem'
-                        className='max-w-[240px] max-h-[300px] rounded-md'
+                        className='max-w-[240px] max-h-[300px] rounded-md bg-black'
                     />
                     <Button
                         size='icon'

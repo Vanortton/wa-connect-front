@@ -45,7 +45,7 @@ export default function ReplyPreview({
 
     return (
         <div
-            className='bg-muted py-1 px-2 rounded-sm my-1 border-l-6 border-emerald-500 shadow-sm cursor-pointer break-all'
+            className='bg-muted py-1 px-2 rounded-sm my-1 border-l-6 border-emerald-500 shadow-sm cursor-pointer break-all line-clamp-1'
             onClick={scrollToMsg}
         >
             {getLastMessageContent({ message } as IWebMessageInfo)}
